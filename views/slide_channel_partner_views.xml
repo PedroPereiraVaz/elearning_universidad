@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Extended Tree View for Gradebook Overview -->
+    <record id="slide_channel_partner_view_tree_academy" model="ir.ui.view">
+        <field name="name">slide.channel.partner.list.academy</field>
+        <field name="model">slide.channel.partner</field>
+        <field name="inherit_id" ref="website_slides.slide_channel_partner_view_tree"/>
+        <field name="arch" type="xml">
+            <field name="completion" position="after">
+                <field name="final_grade" optional="show"/>
+                <field name="is_manual_grade" optional="hide"/>
+            </field>
+        </field>
+    </record>
+
+    <!-- NEW Form View for Detailed Student Grading -->
+    <record id="slide_channel_partner_view_form_academy" model="ir.ui.view">
+        <field name="name">slide.channel.partner.form.academy</field>
+        <field name="model">slide.channel.partner</field>
+        <field name="arch" type="xml">
+            <form string="Student Gradebook" create="false">
+                <header>
+                    <field name="member_status" widget="statusbar"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="partner_id" readonly="1"/>
+                        </h1>
+                        <h3>
+                            <field name="channel_id" readonly="1"/>
+                        </h3>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="final_grade" readonly="not is_manual_grade" force_save="1"/>
+                            <field name="is_manual_grade" widget="boolean_toggle"/>
+                        </group>
+                        <group>
+                            <field name="completion" widget="percentpie"/>
+                            <field name="create_date" string="Enrolled On"/>
+                        </group>
+                    </group>
+                    
+                    <notebook>
+                        <page string="Entregables y Calificaciones" name="grades">
+                            <field name="slide_partner_ids" mode="list,kanban">
+                                <list string="Entregables" editable="bottom" create="false" delete="false">
+                                    <field name="slide_id" string="Contenido" readonly="1" options="{'no_open': True}"/>
+                                    <field name="point_weight" optional="show"/>
+                                    <field name="slide_category" column_invisible="True"/>
+                                    
+                                    <!-- Link to Child Course Grading -->
+                                    <button name="action_open_sub_course_grading" string="Evaluar Asignatura" 
+                                            type="object" icon="fa-arrow-right" class="btn-primary"
+                                            invisible="slide_category != 'sub_course'"/>
+                                            
+                                    <field name="status" readonly="1" widget="badge" 
+                                           decoration-success="status == 'graded'" 
+                                           decoration-warning="status == 'submitted'" 
+                                           decoration-info="status == 'pending'"
+                                           invisible="slide_category == 'sub_course'"/>
+                                    <button name="action_set_graded" string="Cerrar Acta" type="object" icon="fa-check" invisible="status == 'graded' or slide_category == 'sub_course'" class="btn-success"/>
+                                    <field name="delivery_date" readonly="1" optional="show" invisible="slide_category == 'sub_course'"/>
+                                    <field name="delivery_file" filename="delivery_filename" widget="binary" string="Descargar Entrega" readonly="1" invisible="slide_category == 'sub_course'"/>
+                                    <field name="delivery_filename" column_invisible="True"/>
+                                    <field name="teacher_grade" string="Nota (0-10)" readonly="slide_category == 'sub_course'"/>
+                                    <field name="teacher_feedback" string="Feedback" optional="hide" invisible="slide_category == 'sub_course'"/>
+                                </list>
+                                <form string="Detalle de Entrega">
+                                    <group>
+                                        <group>
+                                            <field name="slide_id" readonly="1"/>
+                                            <field name="status" readonly="1"/>
+                                            <field name="delivery_date" readonly="1"/>
+                                        </group>
+                                        <group>
+                                            <field name="teacher_grade"/>
+                                            <field name="teacher_feedback"/>
+                                        </group>
+                                    </group>
+                                    <group string="Archivo Entregado">
+                                        <field name="delivery_file" filename="delivery_filename" widget="pdf_viewer"/>
+                                        <field name="delivery_filename" invisible="1"/>
+                                    </group>
+                                </form>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Update Action to allow opening the Form View -->
+    <record id="website_slides.slide_channel_partner_action" model="ir.actions.act_window">
+        <field name="view_mode">list,form,kanban</field>
+    </record>
+    
+    <!-- ACTION: Pending Deliveries -->
+    <record id="slide_slide_partner_view_tree_grading" model="ir.ui.view">
+        <field name="name">slide.slide.partner.list.grading</field>
+        <field name="model">slide.slide.partner</field>
+        <field name="arch" type="xml">
+            <list string="Entregas Pendientes" editable="bottom" create="false" delete="false" decoration-warning="status=='submitted'">
+                <field name="delivery_date" readonly="1" optional="show"/>
+                <field name="channel_id" readonly="1" string="Curso/Asignatura" optional="show"/>
+                <field name="partner_id" readonly="1" string="Estudiante"/>
+                <field name="slide_id" readonly="1" string="Actividad" options="{'no_open': True}"/>
+                <field name="point_weight" optional="show"/>
+                <field name="delivery_file" filename="delivery_filename" widget="binary" string="Archivo" readonly="1"/>
+                <field name="delivery_filename" column_invisible="True"/>
+                <field name="teacher_grade" string="Nota"/>
+                <field name="teacher_feedback" string="Feedback" optional="hide"/>
+                <field name="status" readonly="1" widget="badge" decoration-warning="status=='submitted'"/>
+                
+                <field name="slide_category" column_invisible="True"/>
+                <button name="action_set_graded" string="Cerrar Acta" type="object" icon="fa-check" invisible="status == 'graded'" class="btn-success"/>
+                <button name="action_open_sub_course_grading" string="Ir a Asignatura" type="object" icon="fa-arrow-right" invisible="slide_category != 'sub_course'"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_academy_grading_pending" model="ir.actions.act_window">
+        <field name="name">Entregas Pendientes</field>
+        <field name="res_model">slide.slide.partner</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('status', '=', 'submitted')]</field>
+        <field name="context">{'academy_boletin_filter': True}</field>
+        <field name="view_id" ref="slide_slide_partner_view_tree_grading"/>
+    </record>
+
+    <!-- ACTION: Gradebook Overview (Grouped) -->
+    <record id="action_academy_grading_overview" model="ir.actions.act_window">
+        <field name="name">Boletines de Calificaciones</field>
+        <field name="res_model">slide.channel.partner</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[]</field>
+        <field name="context">{'group_by': 'channel_id', 'academy_boletin_filter': True}</field>
+        <field name="view_id" ref="slide_channel_partner_view_tree_academy"/>
+    </record>
+    
+</odoo>

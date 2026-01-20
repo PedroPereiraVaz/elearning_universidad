@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Actions for Academy Filtering -->
+    <record id="action_academy_course" model="ir.actions.act_window">
+        <field name="name">Cursos</field>
+        <field name="res_model">slide.channel</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="domain">[('academy_type', '=', 'master')]</field>
+        <field name="context">{'default_academy_type': 'master'}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Crear un nuevo Curso
+            </p>
+        </field>
+    </record>
+
+    <record id="action_academy_subject" model="ir.actions.act_window">
+        <field name="name">Asignaturas</field>
+        <field name="res_model">slide.channel</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="domain">[('academy_type', '=', 'course')]</field>
+        <field name="context">{'default_academy_type': 'course'}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Crear una nueva Asignatura
+            </p>
+        </field>
+    </record>
+
+    <!-- Menu Construction -->
+    
+    <!-- 0. Allow Teachers to see the Root Menu and Courses Menu -->
+    <menuitem id="website_slides.website_slides_menu_root"
+              name="eLearning"
+              groups="website_slides.group_website_slides_officer,elearning_academy.group_academy_teacher"/>
+
+    <menuitem id="website_slides.website_slides_menu_courses"
+              name="Cursos"
+              parent="website_slides.website_slides_menu_root"
+              sequence="10"
+              groups="website_slides.group_website_slides_officer,elearning_academy.group_academy_teacher"/>
+
+    <!-- 1. Modify the SUB-MENU 'Courses' (Courses/Courses) to show only Cursos (Masters) -->
+    <menuitem id="website_slides.website_slides_menu_courses_courses"
+              name="Cursos"
+              parent="website_slides.website_slides_menu_courses"
+              action="action_academy_course"
+              sequence="1"/>
+
+    <!-- 2. Add Asignaturas menu as a sibling under 'Courses' (Courses/Asignaturas) -->
+    <menuitem id="menu_academy_subjects"
+              name="Asignaturas"
+              parent="website_slides.website_slides_menu_courses"
+              action="action_academy_subject"
+              sequence="2"/>
+    
+    <!-- 3. Move Content to Sequence 3 to appear after Asignaturas -->
+    <menuitem id="website_slides.website_slides_menu_courses_content"
+              parent="website_slides.website_slides_menu_courses"
+              sequence="30"/>
+    
+    <!-- 4. Explicitly set Reporting and Configuration parents and sequences -->
+    <menuitem id="website_slides.website_slides_menu_report"
+              parent="website_slides.website_slides_menu_root"
+              sequence="30"
+              groups="website_slides.group_website_slides_officer"/>
+
+    <menuitem id="website_slides.website_slides_menu_configuration"
+              parent="website_slides.website_slides_menu_root"
+              sequence="40"
+              groups="website_slides.group_website_slides_officer"/>
+    
+    <!-- Revert the parent menu to be a container (if we accidentally changed it) - Optional if we just don't override it -->
+    <!-- But since I overwrote it in previous step, I should replace that block. -->
+
+    <!-- 5. Override Contents Action to exclude Subjects (Sub-courses) -->
+    <record id="website_slides.slide_slide_action" model="ir.actions.act_window">
+        <field name="domain">[('is_category', '=', False), ('slide_category', '!=', 'sub_course')]</field>
+    </record>
+    <!-- 5. Override Default Overview Action to exclude Subjects -->
+    <record id="website_slides.slide_channel_action_overview" model="ir.actions.act_window">
+         <field name="domain">[('academy_type', '=', 'master')]</field>
+    </record>
+    <!-- 6. Evaluation Menu -->
+    <menuitem id="menu_academy_evaluation_root"
+              name="Evaluación"
+              parent="website_slides.website_slides_menu_root"
+              sequence="20"
+              groups="website_slides.group_website_slides_officer,elearning_academy.group_academy_teacher"/>
+
+    <menuitem id="menu_academy_evaluation_pending"
+              name="Pendientes de Calificar"
+              parent="menu_academy_evaluation_root"
+              action="action_academy_grading_pending"
+              sequence="10"/>
+
+    <menuitem id="menu_academy_evaluation_overview"
+              name="Boletines por Curso"
+              parent="menu_academy_evaluation_root"
+              action="action_academy_grading_overview"
+              sequence="20"/>
+</odoo>

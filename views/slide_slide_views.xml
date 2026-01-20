@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_slide_slide_form_academy" model="ir.ui.view">
+        <field name="name">slide.slide.form.academy</field>
+        <field name="model">slide.slide</field>
+        <field name="inherit_id" ref="website_slides.view_slide_slide_form"/>
+        <field name="arch" type="xml">
+
+            <!-- Add Scheduled Publishing fields in the Details Group -->
+            <!-- Hidden fields for logic -->
+            <xpath expr="//sheet" position="inside">
+                <field name="channel_academy_type" invisible="1"/>
+            </xpath>
+
+            <!-- Add Scheduled Publishing fields in the Details Group -->
+            <xpath expr="//field[@name='user_id']" position="after">
+                <label for="is_published" string="Estado Publicación"/>
+                <div class="o_row">
+                    <field name="is_published" widget="boolean_toggle"/>
+                    <span class="badg text-bg-success" invisible="not is_published">Publicado</span>
+                    <span class="badge text-bg-warning" invisible="is_published">Borrador</span>
+                </div>
+                
+                <field name="scheduled_publish_date" 
+                       placeholder="Ej: 2026-01-30 10:00:00"
+                       invisible="is_published"/>
+                <div class="text-muted small mb-3" invisible="is_published or not scheduled_publish_date">
+                    <i class="fa fa-info-circle"/> Se publicará automáticamente en la fecha seleccionada.
+                </div>
+            </xpath>
+
+            <!-- Original changes kept below -->
+            <!-- Clean up and restrict type selection -->
+            <xpath expr="//field[@name='slide_category']" position="attributes">
+                <attribute name="invisible">channel_academy_type != 'master' and slide_category == 'sub_course'</attribute>
+            </xpath>
+
+            <xpath expr="//field[@name='slide_type']" position="after">
+                <field name="delivery_max_score" invisible="slide_category != 'delivery'" required="slide_category == 'delivery'"/>
+                <field name="is_evaluable" widget="boolean_toggle" 
+                       invisible="is_category or slide_category not in ['quiz', 'certification', 'delivery', 'sub_course']"/>
+                <field name="point_weight" invisible="is_category or not is_evaluable or slide_category not in ['quiz', 'certification', 'delivery', 'sub_course']" widget="float"/>
+                <field name="sub_channel_id" invisible="slide_category != 'sub_course'" required="slide_category == 'sub_course'"/>
+                <field name="sub_channel_user_id" string="Responsable (Director)" invisible="slide_category != 'sub_course'"/>
+                <field name="sub_channel_additional_teacher_ids" widget="many2many_tags" invisible="slide_category != 'sub_course'"/>
+            </xpath>
+            
+
+            
+            <!-- Clean up old evaluation link page if it was there -->
+            <!-- Removing the page we added previously since we don't need it -->
+        </field>
+    </record>
+    <!-- Tree view override removed as per user request -->
+    <!-- 
+    <record id="view_slide_slide_tree_academy" model="ir.ui.view">
+       ...
+    </record> 
+    -->
+</odoo>

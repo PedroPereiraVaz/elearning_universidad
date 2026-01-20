@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_slide_channel_form_academy" model="ir.ui.view">
+        <field name="name">slide.channel.form.academy</field>
+        <field name="model">slide.channel</field>
+        <field name="inherit_id" ref="website_slides.view_slide_channel_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet" position="before">
+                <header>
+                    <button name="action_issue_degrees" 
+                            string="Emitir Títulos a Aprobados" 
+                            type="object" 
+                            class="btn-primary" 
+                            confirm="¿Emitir títulos a los estudiantes con nota final >= 5.0?"
+                            invisible="academy_type != 'master'"
+                            groups="elearning_academy.group_academy_director"/>
+                    <button name="action_add_subject" 
+                            string="Agregar Asignatura" 
+                            type="object" 
+                            class="btn-secondary" 
+                            invisible="academy_type != 'master'"
+                            groups="elearning_academy.group_academy_director"/>
+                </header>
+            </xpath>
+            
+            <!-- Hide Standard Invite/Enroll Buttons for non-Directors -->
+            <xpath expr="//button[@name='action_channel_invite']" position="attributes">
+                <attribute name="groups">elearning_academy.group_academy_director</attribute>
+            </xpath>
+            <xpath expr="//button[@name='action_channel_enroll']" position="attributes">
+                <attribute name="groups">elearning_academy.group_academy_director</attribute>
+            </xpath>
+
+            <!-- Header: Add Academy Type (Hidden as it is set via context/default) -->
+            <xpath expr="//field[@name='channel_type']" position="after">
+                <field name="academy_type" invisible="1"/>
+            </xpath>
+            
+            <!-- Visual Change: Responsibility -> Director Académico -->
+            <xpath expr="//field[@name='user_id']" position="attributes">
+                <attribute name="string">Director Académico</attribute>
+            </xpath>
+
+            <xpath expr="//field[@name='user_id']" position="after">
+                <field name="additional_teacher_ids" widget="many2many_tags" string="Profesores"/>
+                <field name="upload_size_limit"/>
+                <field name="certification_report_layout" 
+                       invisible="academy_type != 'master'"
+                       groups="elearning_academy.group_academy_director"/>
+            </xpath>
+
+            <xpath expr="//field[@name='enroll']" position="after">
+                <field name="price_courses" widget="monetary" 
+                       invisible="enroll != 'payment'"
+                       groups="elearning_academy.group_academy_director"/>
+            </xpath>
+
+            <!-- Add Total Weight above Content List -->
+            <xpath expr="//field[@name='slide_ids']" position="before">
+                <group>
+                    <field name="total_weight" widget="progressbar"/>
+                </group>
+            </xpath>
+
+            <!-- Hide native Product ID field as it is auto-managed -->
+            <!-- We use 'invisible="1"' to hide it but keep it in view for form processing if needed -->
+            <xpath expr="//field[@name='product_id']" position="attributes">
+                <attribute name="invisible">1</attribute>
+                <attribute name="required">0</attribute>
+            </xpath>
+
+            <!-- Removed problematic One2many control overrides as they were causing JS EvalErrors -->
+
+            <!-- Add Weight column to slide list -->
+            <xpath expr="//field[@name='slide_ids']/list/field[@name='completion_time']" position="before">
+                <field name="is_evaluable" optional="show"/>
+                <field name="point_weight" widget="float" optional="show" invisible="not is_evaluable"/>
+            </xpath>
+
+
+
+            <!-- Move Roles and Certification to Options Tab -->
+            <!-- The options tab usually has 'promote_strategy' or similar groups -->
+            <xpath expr="//page[@name='options']" position="inside">
+                    <!-- Removed Academy and Roles group as it was moved to the main sheet -->
+            </xpath>
+            
+            <!-- HIDE TABS from everyone except Directors -->
+            <xpath expr="//page[@name='description']" position="attributes">
+                <attribute name="groups">elearning_academy.group_academy_director</attribute>
+            </xpath>
+            <xpath expr="//page[@name='options']" position="attributes">
+                <attribute name="groups">elearning_academy.group_academy_director</attribute>
+            </xpath>
+            <xpath expr="//page[@name='karma_rules']" position="attributes">
+                <attribute name="groups">elearning_academy.group_academy_director</attribute>
+            </xpath>
+            
+            <!-- We removed the custom tabs for Subjects and Evaluation Plan as they are now integrated in Content -->
+        </field>
+    </record>
+</odoo>

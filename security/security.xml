@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="group_academy_teacher" model="res.groups">
+        <field name="name">Profesor de Academia</field>
+        <field name="category_id" ref="base.module_category_website_website"/>
+        <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+
+    <record id="group_academy_director" model="res.groups">
+        <field name="name">Director de Academia</field>
+        <field name="category_id" ref="base.module_category_website_website"/>
+        <field name="implied_ids" eval="[(4, ref('group_academy_teacher')), (4, ref('website_slides.group_website_slides_officer'))]"/>
+        <field name="users" eval="[(4, ref('base.user_root')), (4, ref('base.user_admin'))]"/>
+    </record>
+
+    <!-- RECORD RULES -->
+    
+    <!-- Rule 1: Teachers can ONLY see channels where they are owner OR assigned -->
+    <record id="rule_academy_teacher_channel_visibility" model="ir.rule">
+        <field name="name">Academy: Teacher Channel Visibility</field>
+        <field name="model_id" ref="website_slides.model_slide_channel"/>
+        <field name="domain_force">
+            ['|', '|', '|', ('user_id', '=', user.id), ('additional_teacher_ids', 'in', user.id), ('containing_master_slide_ids.channel_id.user_id', '=', user.id), ('containing_master_slide_ids.channel_id.additional_teacher_ids', 'in', user.id)]
+        </field>
+        <field name="groups" eval="[(4, ref('group_academy_teacher'))]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+
+    <!-- Rule 2: Teachers can ONLY see/edit SLIDES (Content) of their courses -->
+    <record id="rule_academy_teacher_slide_access" model="ir.rule">
+        <field name="name">Academy: Teacher Slide Access</field>
+        <field name="model_id" ref="website_slides.model_slide_slide"/>
+        <field name="domain_force">
+            ['|', '|', '|', ('channel_id.user_id', '=', user.id), ('channel_id.additional_teacher_ids', 'in', user.id), ('channel_id.containing_master_slide_ids.channel_id.user_id', '=', user.id), ('channel_id.containing_master_slide_ids.channel_id.additional_teacher_ids', 'in', user.id)]
+        </field>
+        <field name="groups" eval="[(4, ref('group_academy_teacher'))]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="True"/>
+    </record>
+    
+    <record id="rule_academy_director_channel_visibility" model="ir.rule">
+        <field name="name">Academy: Director Channel Visibility (Total)</field>
+        <field name="model_id" ref="website_slides.model_slide_channel"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('group_academy_director'))]"/>
+    </record>
+
+    <record id="rule_academy_director_slide_visibility" model="ir.rule">
+        <field name="name">Academy: Director Slide Visibility (Total)</field>
+        <field name="model_id" ref="website_slides.model_slide_slide"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('group_academy_director'))]"/>
+    </record>
+
+    <!-- Rule 4: Teachers can ONLY modify grading for students in their courses -->
+    <record id="rule_academy_teacher_grading_rights_partner" model="ir.rule">
+        <field name="name">Academy: Teacher Grading Rights (Slide Partner)</field>
+        <field name="model_id" ref="website_slides.model_slide_slide_partner"/>
+        <!-- Access if the slide's channel is one where the user is a teacher (directly or via parent Master) -->
+        <field name="domain_force">
+            ['|', '|', '|', ('channel_id.user_id', '=', user.id), ('channel_id.additional_teacher_ids', 'in', user.id), ('channel_id.containing_master_slide_ids.channel_id.user_id', '=', user.id), ('channel_id.containing_master_slide_ids.channel_id.additional_teacher_ids', 'in', user.id)]
+        </field>
+        <field name="groups" eval="[(4, ref('group_academy_teacher'))]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="True"/> 
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+    
+    <!-- Rule 5: Same for Channel Partner (Gradebook) -->
+    <record id="rule_academy_teacher_grading_rights_channel_partner" model="ir.rule">
+        <field name="name">Academy: Teacher Grading Rights (Channel Partner)</field>
+        <field name="model_id" ref="website_slides.model_slide_channel_partner"/>
+        <field name="domain_force">
+            ['|', '|', '|', ('channel_id.user_id', '=', user.id), ('channel_id.additional_teacher_ids', 'in', user.id), ('channel_id.containing_master_slide_ids.channel_id.user_id', '=', user.id), ('channel_id.containing_master_slide_ids.channel_id.additional_teacher_ids', 'in', user.id)]
+        </field>
+        <field name="groups" eval="[(4, ref('group_academy_teacher'))]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+
+    <!-- GLOBAL RULE: The Ultimate Filter -->
+    <!-- Global rules are combined with AND. This ensures that even if standard Odoo rules say "Yes" -->
+    <!-- this rule must ALSO say "Yes". -->
+    <!-- Logic: If User is Diretor? OK. If User NOT Teacher? OK. If Teacher? MUST BE OWN. -->
+    <!-- GLOBAL RULE: The Ultimate Filter -->
+    <!-- Global rules are combined with AND. This ensures that even if standard Odoo rules say "Yes" -->
+    <!-- this rule must ALSO say "Yes". -->
+    <!-- Logic: If User is Diretor? OK. If User NOT Teacher? OK. If Teacher? MUST BE OWN. -->
+    <record id="rule_academy_global_teacher_restriction" model="ir.rule">
+        <field name="name">Academy: Global Teacher Restriction (Channel)</field>
+        <field name="model_id" ref="website_slides.model_slide_channel"/>
+        <field name="global" eval="True"/>
+        <field name="domain_force">
+            ['|', '|', '|', '|', ('create_uid', '=', user.id), ('user_id', '=', user.id), ('additional_teacher_ids', 'in', user.id), ('containing_master_slide_ids.channel_id.user_id', '=', user.id), ('containing_master_slide_ids.channel_id.additional_teacher_ids', 'in', user.id)] if user.has_group('elearning_academy.group_academy_teacher') and not user.has_group('elearning_academy.group_academy_director') else [(1, '=', 1)]
+        </field>
+    </record>
+
+    <record id="rule_academy_global_teacher_content_restriction" model="ir.rule">
+        <field name="name">Academy: Global Teacher Restriction (Content)</field>
+        <field name="model_id" ref="website_slides.model_slide_slide"/>
+        <field name="global" eval="True"/>
+        <field name="domain_force">
+            ['|', '|', '|', '|', ('channel_id.create_uid', '=', user.id), ('channel_id.user_id', '=', user.id), ('channel_id.additional_teacher_ids', 'in', user.id), ('channel_id.containing_master_slide_ids.channel_id.user_id', '=', user.id), ('channel_id.containing_master_slide_ids.channel_id.additional_teacher_ids', 'in', user.id)] if user.has_group('elearning_academy.group_academy_teacher') and not user.has_group('elearning_academy.group_academy_director') else [(1, '=', 1)]
+        </field>
+    </record>
+
+    <!-- SURVEY RULES FOR TEACHERS -->
+
+    <record id="rule_academy_teacher_survey_survey" model="ir.rule">
+        <field name="name">Academy: Teacher Survey Visibility</field>
+        <field name="model_id" ref="survey.model_survey_survey"/>
+        <field name="domain_force">
+            ['|', '|', '|', ('slide_ids.channel_id.user_id', '=', user.id), ('slide_ids.channel_id.additional_teacher_ids', 'in', user.id), ('slide_ids.channel_id.containing_master_slide_ids.channel_id.user_id', '=', user.id), ('slide_ids.channel_id.containing_master_slide_ids.channel_id.additional_teacher_ids', 'in', user.id)]
+        </field>
+        <field name="groups" eval="[(4, ref('group_academy_teacher'))]"/>
+    </record>
+
+    <record id="rule_academy_teacher_survey_question" model="ir.rule">
+        <field name="name">Academy: Teacher Question Visibility</field>
+        <field name="model_id" ref="survey.model_survey_question"/>
+        <field name="domain_force">
+            ['|', '|', '|', ('survey_id.slide_ids.channel_id.user_id', '=', user.id), ('survey_id.slide_ids.channel_id.additional_teacher_ids', 'in', user.id), ('survey_id.slide_ids.channel_id.containing_master_slide_ids.channel_id.user_id', '=', user.id), ('survey_id.slide_ids.channel_id.containing_master_slide_ids.channel_id.additional_teacher_ids', 'in', user.id)]
+        </field>
+        <field name="groups" eval="[(4, ref('group_academy_teacher'))]"/>
+    </record>
+
+    <record id="rule_academy_teacher_survey_user_input" model="ir.rule">
+        <field name="name">Academy: Teacher Survey Input Visibility</field>
+        <field name="model_id" ref="survey.model_survey_user_input"/>
+        <field name="domain_force">
+            ['|', '|', '|', ('survey_id.slide_ids.channel_id.user_id', '=', user.id), ('survey_id.slide_ids.channel_id.additional_teacher_ids', 'in', user.id), ('survey_id.slide_ids.channel_id.containing_master_slide_ids.channel_id.user_id', '=', user.id), ('survey_id.slide_ids.channel_id.containing_master_slide_ids.channel_id.additional_teacher_ids', 'in', user.id)]
+        </field>
+        <field name="groups" eval="[(4, ref('group_academy_teacher'))]"/>
+    </record>
+</odoo>

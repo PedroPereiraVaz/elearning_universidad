@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- 1. Courses Home: Add Tabs for Cursos vs Asignaturas -->
+    <!-- Templates removed to restore native look and feel as per user request -->
+    <!-- The functionality is now integrated more seamlessly via website_academy_templates.xml -->
+</odoo>
