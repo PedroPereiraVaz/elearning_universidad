@@ -1,60 +1,124 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <record id="view_slide_slide_form_academy" model="ir.ui.view">
-        <field name="name">slide.slide.form.academy</field>
+    <record id="view_slide_slide_form_university_simple" model="ir.ui.view">
+        <field name="name">slide.slide.form.university</field>
         <field name="model">slide.slide</field>
-        <field name="inherit_id" ref="website_slides.view_slide_slide_form"/>
+        <field name="inherit_id" ref="website_slides.view_slide_slide_form_wo_channel_id"/>
         <field name="arch" type="xml">
 
-            <!-- Add Scheduled Publishing fields in the Details Group -->
-            <!-- Hidden fields for logic -->
-            <xpath expr="//sheet" position="inside">
-                <field name="channel_academy_type" invisible="1"/>
-            </xpath>
-
-            <!-- Add Scheduled Publishing fields in the Details Group -->
+            <!-- Inyectar ESTADO PUBLICACIÓN y PROGRAMACIÓN estilo Academy -->
             <xpath expr="//field[@name='user_id']" position="after">
                 <label for="is_published" string="Estado Publicación"/>
                 <div class="o_row">
+                    <field name="active" invisible="1"/>
                     <field name="is_published" widget="boolean_toggle"/>
-                    <span class="badg text-bg-success" invisible="not is_published">Publicado</span>
-                    <span class="badge text-bg-warning" invisible="is_published">Borrador</span>
+                    <span class="badge text-bg-success" invisible="not is_published">Publicado</span>
+                    <span class="badge text-bg-info" invisible="is_published or not fecha_programada">Programado</span>
+                    <span class="badge text-bg-warning" invisible="is_published or fecha_programada">Borrador</span>
                 </div>
                 
-                <field name="scheduled_publish_date" 
-                       placeholder="Ej: 2026-01-30 10:00:00"
-                       invisible="is_published"/>
-                <div class="text-muted small mb-3" invisible="is_published or not scheduled_publish_date">
-                    <i class="fa fa-info-circle"/> Se publicará automáticamente en la fecha seleccionada.
+                <label for="fecha_programada" string="Programar Publicación"/>
+                <div class="o_row">
+                    <field name="fecha_programada" nolabel="1"/>
+                    <button name="action_programar_publicacion" 
+                            string="Confirmar" 
+                            type="object" 
+                            class="btn btn-link ms-2"
+                            invisible="not fecha_programada or is_published"/>
+                    <span class="text-muted small ms-2" invisible="not fecha_programada or is_published">
+                        <i class="fa fa-info-circle"/> Se publicará automáticamente.
+                    </span>
                 </div>
             </xpath>
 
-            <!-- Original changes kept below -->
-            <!-- Clean up and restrict type selection -->
-            <xpath expr="//field[@name='slide_category']" position="attributes">
-                <attribute name="invisible">channel_academy_type != 'master' and slide_category == 'sub_course'</attribute>
+            <!-- INYECTAR CAMPOS DEBAJO DE CATEGORÍA -->
+            <xpath expr="//field[@name='slide_category']" position="after">
+                 <field name="es_evaluable" widget="boolean_toggle"
+                        invisible="slide_category not in ['exam', 'delivery', 'sub_course', 'certification']"/>
+                 
+                 <field name="asignatura_id" 
+                        domain="[('tipo_curso', '=', 'asignatura'), ('master_id', '=', False)]"
+                        invisible="slide_category != 'sub_course'"
+                        required="slide_category == 'sub_course'"
+                        context="{'default_tipo_curso': 'asignatura', 'default_master_id': channel_id}"
+                        options="{'no_quick_create': True}"/> 
+                 
+                 <field name="canal_tipo_curso" invisible="1"/>
             </xpath>
 
-            <xpath expr="//field[@name='slide_type']" position="after">
-                <field name="delivery_max_score" invisible="slide_category != 'delivery'" required="slide_category == 'delivery'"/>
-                <field name="is_evaluable" widget="boolean_toggle" 
-                       invisible="is_category or slide_category not in ['quiz', 'certification', 'delivery', 'sub_course']"/>
-                <field name="point_weight" invisible="is_category or not is_evaluable or slide_category not in ['quiz', 'certification', 'delivery', 'sub_course']" widget="float"/>
-                <field name="sub_channel_id" invisible="slide_category != 'sub_course'" required="slide_category == 'sub_course'"/>
-                <field name="sub_channel_user_id" string="Responsable (Director)" invisible="slide_category != 'sub_course'"/>
-                <field name="sub_channel_additional_teacher_ids" widget="many2many_tags" invisible="slide_category != 'sub_course'"/>
-            </xpath>
-            
-
-            
-            <!-- Clean up old evaluation link page if it was there -->
-            <!-- Removing the page we added previously since we don't need it -->
         </field>
     </record>
-    <!-- Tree view override removed as per user request -->
-    <!-- 
-    <record id="view_slide_slide_tree_academy" model="ir.ui.view">
-       ...
-    </record> 
-    -->
+
+    <!-- Nueva vista para modificar el comportamiento de Certificaciones y Exámenes de website_slides_survey -->
+    <record id="slide_slide_view_form_exam_university" model="ir.ui.view">
+        <field name="name">slide.slide.view.form.exam.university</field>
+        <field name="model">slide.slide</field>
+        <field name="inherit_id" ref="website_slides_survey.slide_slide_view_form"/>
+        <field name="arch" type="xml">
+            <!-- 1. Campo ORIGINAL de Certificaciones: Lo aseguramos solo para certifications -->
+            <field name="survey_id" position="attributes">
+                <attribute name="invisible">slide_category != 'certification'</attribute>
+                <attribute name="required">slide_category == 'certification'</attribute>
+            </field>
+
+            <!-- 2. Nuevo Campo RELACIONADO para EXÁMENES: Con contexto específico y nombre único -->
+            <field name="survey_id" position="after">
+                <field name="exam_id" 
+                       domain="[('is_exam', '=', True)]"
+                       invisible="slide_category != 'exam'"
+                       required="slide_category == 'exam'"
+                       context="{'default_is_exam': True, 'default_certification': False, 'default_scoring_type': 'scoring_with_answers', 'default_access_mode': 'token', 'default_users_login_required': True, 'default_is_attempts_limited': True, 'default_is_time_limited': True, 'form_view_ref': 'elearning_universidad.view_survey_form_exam_university'}"/>
+            </field>
+        </field>
+    </record>
+
+    <!-- Vista Simplificada para "Agregar Asignatura" desde Master -->
+    <record id="view_slide_slide_form_add_asignatura" model="ir.ui.view">
+        <field name="name">slide.slide.form.add.asignatura</field>
+        <field name="model">slide.slide</field>
+        <field name="arch" type="xml">
+            <form string="Agregar Asignatura">
+                <sheet>
+                    <group>
+                        <!-- Campos Ocultos Obligatorios -->
+                        <field name="name" invisible="1"/>
+                        <field name="slide_category" invisible="1"/>
+                        <field name="is_category" invisible="1"/>
+                        <field name="channel_id" invisible="1"/>
+
+                        <!-- Selección de Asignatura -->
+                        <div class="alert alert-info" role="alert" colspan="2">
+                            Seleccione la Asignatura que desea vincular o puede crear una nueva escribiendo el nombre. Puede programar su visibilidad.
+                        </div>
+                        <field name="asignatura_id" 
+                               options="{'no_quick_create': True}" 
+                               context="{'default_tipo_curso': 'asignatura', 'default_master_id': channel_id, 'avoid_slide_sync': True}"
+                               domain="[('tipo_curso', '=', 'asignatura'), ('master_id', '=', False)]"
+                               required="1"/>
+                        
+                        <!-- REUTILIZACIÓN: Controles de Publicación (Estándar de Contenidos) -->
+                        <label for="is_published" string="Estado Publicación"/>
+                        <div class="o_row">
+                            <field name="active" invisible="1"/>
+                            <field name="is_published" widget="boolean_toggle"/>
+                            <span class="badge text-bg-success" invisible="not is_published">Publicado</span>
+                            <span class="badge text-bg-info" invisible="is_published or not fecha_programada">Programado</span>
+                            <span class="badge text-bg-warning" invisible="is_published or fecha_programada">Borrador</span>
+                        </div>
+                        
+                        <label for="fecha_programada" string="Programar"/>
+                        <div class="o_row">
+                            <field name="fecha_programada" nolabel="1"/>
+                            <button name="action_programar_publicacion" 
+                                    string="Confirmar" 
+                                    type="object" 
+                                    class="btn btn-link ms-2"
+                                    invisible="not fecha_programada or is_published"/>
+                        </div>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
 </odoo>

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_slide_channel_schedule_wizard_form" model="ir.ui.view">
+        <field name="name">slide.channel.schedule.wizard.form</field>
+        <field name="model">slide.channel.schedule.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Programar Publicación">
+                <group>
+                    <field name="channel_id" invisible="1"/>
+                    <field name="fecha_publicacion"/>
+                </group>
+                <div class="alert alert-info" role="alert">
+                    El curso cambiará a estado <strong>Programado</strong> y se publicará automáticamente en la fecha indicada.
+                </div>
+                <footer>
+                    <button name="action_confirm_schedule" string="Programar" type="object" class="btn-primary"/>
+                    <button string="Cancelar" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_slide_channel_schedule_wizard" model="ir.actions.act_window">
+        <field name="name">Programar Publicación</field>
+        <field name="res_model">slide.channel.schedule.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+</odoo>

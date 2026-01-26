@@ -1,13 +1,36 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <data noupdate="1">
-        <record id="ir_cron_publish_scheduled_slides" model="ir.cron">
-            <field name="name">Academy: Publish Scheduled Content</field>
+        <!-- CRON para publicar cursos (canales) programados -->
+        <record id="ir_cron_publicar_cursos_programados" model="ir.cron">
+            <field name="name">Universidad: Publicar Cursos Programados</field>
+            <field name="model_id" ref="model_slide_channel"/>
+            <field name="state">code</field>
+            <field name="code">model._cron_publicar_cursos_programados()</field>
+            <field name="interval_number">5</field>
+            <field name="interval_type">minutes</field>
+            <field name="active">True</field>
+        </record>
+
+        <!-- CRON para publicar contenidos (slides) programados -->
+        <record id="ir_cron_publicar_slides_programados" model="ir.cron">
+            <field name="name">Universidad: Publicar Contenidos Programados</field>
             <field name="model_id" ref="model_slide_slide"/>
             <field name="state">code</field>
-            <field name="code">model._cron_publish_scheduled_slides()</field>
-            <field name="interval_number">1</field>
-            <field name="interval_type">hours</field> <!-- Check every hour -->
+            <field name="code">model._cron_publicar_slides_programados()</field>
+            <field name="interval_number">5</field>
+            <field name="interval_type">minutes</field>
+            <field name="active">True</field>
+        </record>
+
+        <!-- CRON para emisión asíncrona de títulos -->
+        <record id="ir_cron_emitir_titulos_pendientes" model="ir.cron">
+            <field name="name">Universidad: Emisión Asíncrona de Títulos</field>
+            <field name="model_id" ref="model_slide_channel_partner"/>
+            <field name="state">code</field>
+            <field name="code">model._cron_emitir_titulos_pendientes()</field>
+            <field name="interval_number">5</field>
+            <field name="interval_type">minutes</field>
             <field name="active">True</field>
         </record>
     </data>

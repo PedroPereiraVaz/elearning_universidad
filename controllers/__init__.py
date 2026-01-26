@@ -1,1 +1,1 @@
-from . import academy_controller
+from . import main

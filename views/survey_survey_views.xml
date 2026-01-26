@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- VISTA FORMULARIO ESPECÍFICA PARA EXÁMENES (PRIMARY) -->
+    <!-- Hereda de la vista base pero permite personalizar placeholders y estructura sin afectar a otras encuestas -->
+    <record id="view_survey_form_exam_university" model="ir.ui.view">
+        <field name="name">survey.survey.view.form.exam.university</field>
+        <field name="model">survey.survey</field>
+        <field name="inherit_id" ref="survey.survey_survey_view_form"/>
+        <field name="mode">primary</field>
+        <field name="priority">20</field>
+        <field name="arch" type="xml">
+            
+            <!-- 1. PERSONALIZACIÓN DE TÍTULOS Y PLACEHOLDERS -->
+            <xpath expr="//field[@name='title']" position="attributes">
+                <attribute name="placeholder">Nombre del examen</attribute>
+            </xpath>
+            
+            <xpath expr="//field[@name='description']" position="attributes">
+                <attribute name="placeholder">Escribe aquí tu descripción...</attribute>
+            </xpath>
+
+            <!-- Ajuste de etiqueta "Límite de tiempo" -->
+            <xpath expr="//label[@for='is_time_limited']" position="attributes">
+                <attribute name="string">Límite de tiempo</attribute>
+            </xpath>
+
+            <!-- 2. LÓGICA DE CAMPOS (Ocultar/Bloquear) -->
+            <!-- Aseguramos que is_exam esté presente -->
+            <xpath expr="//field[@name='title']" position="after">
+                <field name="is_exam" invisible="1"/>
+            </xpath>
+
+            <!-- OCULTAR CERTIFICACIÓN -->
+            <xpath expr="//label[@for='certification']" position="attributes">
+                <attribute name="invisible">True</attribute>
+            </xpath>
+            <xpath expr="//div[@name='certification']" position="attributes">
+                <attribute name="invisible">True</attribute>
+            </xpath>
+
+            <!-- OCULTAR MODO DE ACCESO Y LOGIN -->
+            <xpath expr="//field[@name='access_mode']" position="attributes">
+                <attribute name="invisible">True</attribute>
+            </xpath>
+            <xpath expr="//field[@name='users_login_required']" position="attributes">
+                <attribute name="invisible">True</attribute>
+            </xpath>
+
+            <!-- BLOQUEAR CHECKBOX DE TIEMPO (Pero permitir editar duración) -->
+            <xpath expr="//div[@name='is_time_limited']/field[@name='is_time_limited']" position="attributes">
+                <attribute name="readonly">True</attribute>
+            </xpath>
+
+        </field>
+    </record>
+</odoo>

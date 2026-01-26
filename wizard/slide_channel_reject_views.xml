@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_slide_channel_reject_wizard_form" model="ir.ui.view">
+        <field name="name">slide.channel.reject.wizard.form</field>
+        <field name="model">slide.channel.reject.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Motivo de Rechazo">
+                <group>
+                    <field name="channel_id" invisible="1"/>
+                    <field name="motivo" placeholder="Indique el motivo por el cual el curso debe ser subsanado..."/>
+                </group>
+                <footer>
+                    <button name="action_confirm_rejection" string="Rechazar y Notificar" type="object" class="btn-primary"/>
+                    <button string="Cancelar" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_slide_channel_reject_wizard" model="ir.actions.act_window">
+        <field name="name">Motivo de Rechazo</field>
+        <field name="res_model">slide.channel.reject.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+</odoo>

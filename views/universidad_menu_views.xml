@@ -1,0 +1,335 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- 
+        =================================================================
+        ACCIÓN DE SERVIDOR: HOME (REDIRECCIÓN POR ROL)
+        =================================================================
+    -->
+    <record id="action_server_elearning_home" model="ir.actions.server">
+        <field name="name">eLearning Home Redirect</field>
+        <field name="model_id" ref="website_slides.model_slide_channel"/>
+        <field name="state">code</field>
+        <field name="code">
+user = env.user
+if user.has_group('elearning_universidad.grupo_administrador_universidad'):
+    action = env.ref('elearning_universidad.action_universidad_revision').sudo()
+elif user.has_group('elearning_universidad.grupo_director_academico'):
+    # Dispatcher Master/Micro decidirá la vista, aquí solo redirigimos a la acción dispatcher
+    action = env.ref('elearning_universidad.action_server_dispatch_master').sudo() 
+elif user.has_group('elearning_universidad.grupo_personal_docente'):
+    # Dispatcher Asignatura decidirá la vista
+    action = env.ref('elearning_universidad.action_server_dispatch_asignatura').sudo()
+else:
+    action = env.ref('elearning_universidad.action_server_dispatch_microcredencial').sudo()
+
+action_data = action.read()[0]
+action = action_data
+        </field>
+    </record>
+
+    <!-- MENÚ ROOT -->
+    <record id="website_slides.website_slides_menu_root" model="ir.ui.menu">
+        <field name="action" ref="action_server_elearning_home"/>
+        <field name="groups_id" eval="[(6, 0, [
+            ref('elearning_universidad.grupo_administrador_universidad'),
+            ref('elearning_universidad.grupo_director_academico'),
+            ref('elearning_universidad.grupo_personal_docente')
+        ])]"/>
+    </record>
+
+    <!-- 
+        =================================================================
+        VISTAS "READONLY" (SIN CREATE)
+        ================================================================= 
+        Usadas para Docentes (siempre) y Directores (en Masters/Microcreds)
+    -->
+    <record id="view_slide_channel_kanban_readonly" model="ir.ui.view">
+        <field name="name">slide.channel.kanban.readonly</field>
+        <field name="model">slide.channel</field>
+        <field name="inherit_id" ref="website_slides.slide_channel_view_kanban"/>
+        <field name="mode">primary</field>
+        <field name="arch" type="xml">
+            <xpath expr="//kanban" position="attributes">
+                <attribute name="create">false</attribute>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_slide_channel_tree_readonly" model="ir.ui.view">
+        <field name="name">slide.channel.tree.readonly</field>
+        <field name="model">slide.channel</field>
+        <field name="inherit_id" ref="elearning_universidad.view_slide_channel_tree_university_admin"/>
+        <field name="mode">primary</field>
+        <field name="arch" type="xml">
+            <xpath expr="//list" position="attributes">
+                <attribute name="create">false</attribute>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- 
+        =================================================================
+        ACTIONS SERVER (DISPATCHERS) - LÓGICA DE UI POR ROL
+        ================================================================= 
+    -->
+
+    <!-- 1. DISPATCHER: MICROCREDENCIALES -->
+    <!-- Admin: Edit | Director: Readonly | Docente: Readonly -->
+    <record id="action_server_dispatch_microcredencial" model="ir.actions.server">
+        <field name="name">Microcredenciales</field>
+        <field name="model_id" ref="website_slides.model_slide_channel"/>
+        <field name="state">code</field>
+        <field name="code">
+user = env.user
+can_create = user.has_group('elearning_universidad.grupo_administrador_universidad')
+
+search_domain = [('tipo_curso', '=', 'microcredencial')]
+
+if can_create:
+    views = [
+        (env.ref('website_slides.slide_channel_view_kanban').id, 'kanban'),
+        (env.ref('elearning_universidad.view_slide_channel_tree_university_admin').id, 'list'),
+        (env.ref('website_slides.view_slide_channel_form').id, 'form')
+    ]
+else:
+    # FILTRO UI: Solo mis asignaciones para limpiar la vista lista
+    # (El dominio de seguridad subyacente sigue garantizando lectura del todo si fuera necesario)
+    search_domain += ['|', ('director_academico_ids', 'in', user.id), ('personal_docente_ids', 'in', user.id)]
+    
+    views = [
+        (env.ref('elearning_universidad.view_slide_channel_kanban_readonly').id, 'kanban'),
+        (env.ref('elearning_universidad.view_slide_channel_tree_readonly').id, 'list'),
+        (env.ref('website_slides.view_slide_channel_form').id, 'form')
+    ]
+
+action = {
+    'name': 'Microcredenciales',
+    'type': 'ir.actions.act_window',
+    'res_model': 'slide.channel',
+    'view_mode': 'kanban,list,form',
+    'views': views,
+    'domain': search_domain,
+    'context': {'default_tipo_curso': 'microcredencial'},
+}
+        </field>
+    </record>
+
+    <!-- 2. DISPATCHER: MASTERS -->
+    <!-- Admin: Edit | Director: Readonly | Docente: Readonly -->
+    <record id="action_server_dispatch_master" model="ir.actions.server">
+        <field name="name">Masters</field>
+        <field name="model_id" ref="website_slides.model_slide_channel"/>
+        <field name="state">code</field>
+        <field name="code">
+user = env.user
+can_create = user.has_group('elearning_universidad.grupo_administrador_universidad')
+
+search_domain = [('tipo_curso', '=', 'master')]
+
+if can_create:
+    views = [
+        (env.ref('website_slides.slide_channel_view_kanban').id, 'kanban'),
+        (env.ref('elearning_universidad.view_slide_channel_tree_university_admin').id, 'list'),
+        (env.ref('website_slides.view_slide_channel_form').id, 'form')
+    ]
+else:
+    # FILTRO UI: Solo mis asignaciones
+    search_domain += ['|', ('director_academico_ids', 'in', user.id), ('personal_docente_ids', 'in', user.id)]
+
+    views = [
+        (env.ref('elearning_universidad.view_slide_channel_kanban_readonly').id, 'kanban'),
+        (env.ref('elearning_universidad.view_slide_channel_tree_readonly').id, 'list'),
+        (env.ref('website_slides.view_slide_channel_form').id, 'form')
+    ]
+
+action = {
+    'name': 'Masters',
+    'type': 'ir.actions.act_window',
+    'res_model': 'slide.channel',
+    'view_mode': 'kanban,list,form',
+    'views': views,
+    'domain': search_domain,
+    'context': {'default_tipo_curso': 'master'},
+}
+        </field>
+    </record>
+
+    <!-- 3. DISPATCHER: ASIGNATURAS -->
+    <!-- Admin: Edit | Director: Edit | Docente: Readonly -->
+    <record id="action_server_dispatch_asignatura" model="ir.actions.server">
+        <field name="name">Asignaturas</field>
+        <field name="model_id" ref="website_slides.model_slide_channel"/>
+        <field name="state">code</field>
+        <field name="code">
+user = env.user
+# Asignaturas: Tanto Admin como Director pueden crear
+can_create = user.has_group('elearning_universidad.grupo_administrador_universidad') or user.has_group('elearning_universidad.grupo_director_academico')
+
+search_domain = [('tipo_curso', '=', 'asignatura')]
+
+if can_create:
+    views = [
+        (env.ref('website_slides.slide_channel_view_kanban').id, 'kanban'),
+        (env.ref('elearning_universidad.view_slide_channel_tree_university_admin').id, 'list'),
+        (env.ref('website_slides.view_slide_channel_form').id, 'form')
+    ]
+else:
+    # Docente cae aquí -> Readonly + Filtro UI
+    search_domain += ['|', ('director_academico_ids', 'in', user.id), ('personal_docente_ids', 'in', user.id)]
+    
+    views = [
+        (env.ref('elearning_universidad.view_slide_channel_kanban_readonly').id, 'kanban'),
+        (env.ref('elearning_universidad.view_slide_channel_tree_readonly').id, 'list'),
+        (env.ref('website_slides.view_slide_channel_form').id, 'form')
+    ]
+
+action = {
+    'name': 'Asignaturas',
+    'type': 'ir.actions.act_window',
+    'res_model': 'slide.channel',
+    'view_mode': 'kanban,list,form',
+    'views': views,
+    'domain': search_domain,
+    'context': {'default_tipo_curso': 'asignatura'},
+}
+        </field>
+    </record>
+
+    <!-- 
+        =================================================================
+        ACCIONES ESTÁNDAR 
+        ================================================================= 
+    -->
+
+    <!-- Slides -->
+    <record id="action_universidad_contenidos" model="ir.actions.act_window">
+        <field name="name">Contenidos del Curso</field>
+        <field name="res_model">slide.slide</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="domain">[('is_category', '=', False), ('slide_category', '!=', 'sub_course')]</field>
+    </record>
+
+    <!-- Certificaciones -->
+    <record id="action_universidad_certificaciones" model="ir.actions.act_window">
+        <field name="name">Certificaciones</field>
+        <field name="res_model">slide.slide</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="domain">[('slide_category', '=', 'certification')]</field>
+        <field name="context">{'default_slide_category': 'certification', 'default_slide_type': 'certification'}</field>
+    </record>
+
+    <!-- Exámenes -->
+    <record id="action_universidad_examenes" model="ir.actions.act_window">
+        <field name="name">Gestionar Exámenes</field>
+        <field name="res_model">survey.survey</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="view_ids" eval="[(5, 0, 0),
+            (0, 0, {'view_mode': 'kanban', 'view_id': ref('survey.survey_survey_view_kanban')}),
+            (0, 0, {'view_mode': 'list', 'view_id': ref('survey.survey_survey_view_tree')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('elearning_universidad.view_survey_form_exam_university')})]"/>
+        <field name="domain">[('is_exam', '=', True)]</field>
+        <field name="context">{'default_is_exam': True, 'default_certification': False, 'default_scoring_type': 'scoring_with_answers', 'default_access_mode': 'token', 'default_users_login_required': True, 'default_is_attempts_limited': True, 'default_is_time_limited': True}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Crea un nuevo Examen
+            </p>
+            <p>
+                Define las preguntas, puntuaciones y tiempos para tus exámenes universitarios.
+            </p>
+        </field>
+    </record>
+
+    <!-- Títulos -->
+    <record id="action_universidad_titulos" model="ir.actions.act_window">
+        <field name="name">Títulos Emitidos</field>
+        <field name="res_model">slide.channel.partner</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="view_id" ref="elearning_universidad.view_slide_channel_partner_tree_gradebook"/>
+        <field name="domain">[('titulo_emitido', '=', True)]</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No hay títulos emitidos.</p>
+        </field>
+    </record>
+
+    <!-- Limpieza Menús Nativos -->
+    <record id="website_slides.website_slides_menu_courses" model="ir.ui.menu">
+        <field name="active" eval="False"/>
+    </record>
+
+    <!-- MENÚS (Apuntando a los Dispatchers) -->
+    <menuitem id="menu_universidad_admin_revision" 
+              name="Revisión" 
+              parent="website_slides.website_slides_menu_root"
+              action="action_universidad_revision"
+              sequence="1" 
+              groups="elearning_universidad.grupo_administrador_universidad"/>
+
+    <menuitem id="menu_universidad_formaciones_root"
+              name="Formaciones"
+              parent="website_slides.website_slides_menu_root"
+              sequence="2"/>
+        <menuitem id="menu_universidad_microcredencial"
+                  name="Microcredenciales"
+                  parent="menu_universidad_formaciones_root"
+                  action="action_server_dispatch_microcredencial" 
+                  sequence="1"
+                  groups="elearning_universidad.grupo_administrador_universidad,elearning_universidad.grupo_director_academico,elearning_universidad.grupo_personal_docente"/>
+        <menuitem id="menu_universidad_master"
+                  name="Masters"
+                  parent="menu_universidad_formaciones_root"
+                  action="action_server_dispatch_master" 
+                  sequence="2"
+                  groups="elearning_universidad.grupo_administrador_universidad,elearning_universidad.grupo_director_academico"/>
+    
+    <menuitem id="menu_universidad_contenidos_root"
+              name="Contenidos"
+              parent="website_slides.website_slides_menu_root"
+              sequence="3"/>
+        <menuitem id="menu_universidad_asignatura"
+                  name="Asignaturas"
+                  parent="menu_universidad_contenidos_root"
+                  action="action_server_dispatch_asignatura" 
+                  sequence="1"/>
+        <menuitem id="menu_universidad_examenes_item"
+                  name="Exámenes"
+                  parent="menu_universidad_contenidos_root"
+                  action="action_universidad_examenes"
+                  sequence="2"/>
+        <menuitem id="menu_universidad_contenidos_item"
+                  name="Contenidos"
+                  parent="menu_universidad_contenidos_root"
+                  action="action_universidad_contenidos"
+                  sequence="3"/>
+    
+    <menuitem id="menu_universidad_certificaciones_root"
+              name="Certificaciones"
+              parent="website_slides.website_slides_menu_root"
+              sequence="4"/>
+        <menuitem id="menu_universidad_certificaciones_item"
+                  name="Certificaciones"
+                  parent="menu_universidad_certificaciones_root"
+                  action="action_universidad_certificaciones"
+                  sequence="1"/>
+        <menuitem id="menu_universidad_titulos"
+                  name="Títulos"
+                  parent="menu_universidad_certificaciones_root"
+                  action="action_universidad_titulos"
+                  sequence="2"/>
+    
+    <menuitem id="menu_universidad_evaluacion_root"
+              name="Evaluación"
+              parent="website_slides.website_slides_menu_root"
+              sequence="5"
+              groups="elearning_universidad.grupo_personal_docente"/>
+        <menuitem id="menu_universidad_boletin"
+                  name="Boletín de Notas"
+                  parent="menu_universidad_evaluacion_root"
+                  action="elearning_universidad.action_universidad_boletin"
+                  sequence="1"/>
+        <menuitem id="menu_universidad_pendientes"
+                  name="Pendientes de Evaluar"
+                  parent="menu_universidad_evaluacion_root"
+                  action="elearning_universidad.action_universidad_pendientes"
+                  sequence="2"/>
+
+</odoo>
