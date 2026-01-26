@@ -158,7 +158,7 @@ class CanalSlide(models.Model):
         compute_sudo=True
     )
 
-    @api.depends('personal_docente_ids', 'asignatura_ids.personal_docente_ids')
+    @api.depends('personal_docente_ids', 'asignatura_ids.personal_docente_ids', 'master_id.personal_docente_ids')
     def _compute_all_personal_docente_ids(self):
         for record in self:
             docentes = record.personal_docente_ids
@@ -166,6 +166,10 @@ class CanalSlide(models.Model):
             if record.tipo_curso == 'master':
                 docentes |= record.asignatura_ids.mapped('personal_docente_ids')
             
+            # Si es Asignatura, incluimos los docentes del Master (Visibilidad Ascendente)
+            if record.master_id:
+                docentes |= record.master_id.personal_docente_ids
+
             record.all_personal_docente_ids = docentes
 
     # --- Computes de Lógica Académica ---
@@ -195,6 +199,9 @@ class CanalSlide(models.Model):
                 else:
                     producto = self.env['product.product'].create(valores_producto)
                     curso.product_id = producto.id
+            elif curso.enroll != 'payment' and curso.product_id:
+                # Si pasa a gratuito o invite, archivamos el producto para limpiar
+                curso.product_id.active = False
 
     def _sincronizar_slide_master(self):
         """ 
@@ -204,6 +211,10 @@ class CanalSlide(models.Model):
         Slide = self.env['slide.slide'].sudo()
         for curso in self:
             if curso.tipo_curso == 'asignatura' and curso.master_id:
+                # RECURSION STOPPER: Check if we are reacting to a change from the Slide side
+                if self.env.context.get('avoid_recursive_sync'):
+                    continue
+
                 # 1. Buscamos si ya existe el slide en el Master
                 slide_existente = Slide.search([
                     ('channel_id', '=', curso.master_id.id),
@@ -223,10 +234,10 @@ class CanalSlide(models.Model):
 
                 if slide_existente:
                     # Usamos SUDO y contexto para evitar el envío de correos automáticos "Nuevo contenido publicado"
-                    # al sincronizar la asignatura. Esto evita el RecursionError en la plantilla QWeb.
-                    slide_existente.sudo().with_context(mail_notrack=True, mail_create_nosubscribe=True).write(vals_slide)
+                    # al sincronizar la asignatura. PASAMOS EL FLAG para que el slide no intente escribir de vuelta en nosotros.
+                    slide_existente.sudo().with_context(mail_notrack=True, mail_create_nosubscribe=True, avoid_recursive_sync=True).write(vals_slide)
                 else:
-                    Slide.with_context(automation_create=True, mail_notrack=True, mail_create_nosubscribe=True).create(vals_slide)
+                    Slide.with_context(automation_create=True, mail_notrack=True, mail_create_nosubscribe=True, avoid_recursive_sync=True).create(vals_slide)
             
             # Limpieza: Si cambió de master o dejó de ser asignatura (improbable por inmutabilidad),
             # deberíamos borrar los slides antiguos que apunten a este curso pero estén en otros masters.
@@ -549,7 +560,7 @@ class CanalSlide(models.Model):
                      for r in self:
                          if r.tipo_curso != 'asignatura':
                              raise AccessError(_("Solo los Administradores pueden publicar Masters o Microcredenciales."))
-                         if user not in r.director_academico_ids:
+                         if user not in r.director_academico_ids and r.director_academico_ids:
                              raise AccessError(_("Solo el Director Académico asignado puede publicar esta Asignatura."))
                  else:
                     # Ni admin ni director
@@ -567,7 +578,7 @@ class CanalSlide(models.Model):
                            # No requerimos asignación estricta para editar nombre? 
                            # El usuario pidió "solo directores asignados pueden ver esos botones y usarlos".
                            # Asumimos que para editar estructura también.
-                           if user not in r.director_academico_ids:
+                           if user not in r.director_academico_ids and r.director_academico_ids:
                                raise AccessError(_("Solo el Director Académico asignado puede editar esta Asignatura."))
                            
                            if 'precio_curso' in vals:

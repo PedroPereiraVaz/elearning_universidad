@@ -160,45 +160,75 @@ class SlideChannelPartner(models.Model):
         'channel_id.asignatura_ids.duracion_horas'
     )
     def _compute_nota_academica(self):
-        for record in self:
-            if record.nota_manual:
+        # 1. Separamos registros manuales (no se calculan)
+        auto_records = self.filtered(lambda r: not r.nota_manual)
+        
+        # 2. Separamos por tipo para optimizar
+        masters_records = auto_records.filtered(lambda r: r.channel_id.tipo_curso == 'master')
+        others_records = auto_records - masters_records # Asignatura, Microcredencial
+        
+        # 3. Procesamiento Estándar (Otros)
+        # Odoo prefetch maneja bien las evaluaciones_ids si iteramos
+        for record in others_records:
+            evals = record.evaluaciones_ids
+            if evals:
+                record.nota_final = sum(evals.mapped('nota_evaluacion')) / len(evals)
+            else:
+                record.nota_final = 0.0
+        
+        # 4. Procesamiento Masters (Optimizado: Batch)
+        if not masters_records:
+            return
+
+        # Recopilación de datos masiva
+        all_masters = masters_records.mapped('channel_id')
+        all_asignaturas = all_masters.mapped('asignatura_ids')
+        all_partners = masters_records.mapped('partner_id')
+        
+        # Búsqueda ÚNICA de todas las sub-inscripciones relevantes
+        if all_asignaturas and all_partners:
+            domain = [
+                ('channel_id', 'in', all_asignaturas.ids),
+                ('partner_id', 'in', all_partners.ids)
+            ]
+            # Usamos read_group si solo quisieramos datos, pero necesitamos nota_final que es computado. 
+            # Search normal es mejor que loop.
+            sub_inscriptions = self.env['slide.channel.partner'].search(domain)
+            
+            # Mapeo en Memoria: (partner_id, channel_id) -> nota_final
+            scores_map = {(i.partner_id.id, i.channel_id.id): i.nota_final for i in sub_inscriptions}
+        else:
+            scores_map = {}
+
+        # Pre-cálculo de datos de Masters para evitar re-sumar horas en cada alumno
+        master_data_cache = {}
+        for master in all_masters:
+             asigs = master.asignatura_ids
+             # Filter asignaturas with duration > 0 to avoid division by zero issues in weights (though logical check handles total)
+             total_horas = sum(asigs.mapped('duracion_horas'))
+             master_data_cache[master.id] = {
+                 'asignaturas': asigs,
+                 'total_horas': curr_total_horas if (curr_total_horas := total_horas) > 0 else 0
+             }
+
+        # Cálculo Final en Memoria
+        for record in masters_records:
+            m_data = master_data_cache.get(record.channel_id.id)
+            
+            if not m_data or m_data['total_horas'] <= 0:
+                record.nota_final = 0.0
                 continue
-
-            tipo = record.channel_id.tipo_curso
-            
-            if tipo in ['asignatura', 'microcredencial']:
-                # Promedio simple de contenidos evaluables
-                evals = record.evaluaciones_ids
-                if evals:
-                    record.nota_final = sum(evals.mapped('nota_evaluacion')) / len(evals)
-                else:
-                    record.nota_final = 0.0
-            
-            elif tipo == 'master':
-                # Ponderación por duración de asignaturas
-                asignaturas = record.channel_id.asignatura_ids
-                if not asignaturas:
-                    record.nota_final = 0.0
-                    continue
-
-                total_horas = sum(asignaturas.mapped('duracion_horas'))
-                if total_horas <= 0:
-                    record.nota_final = 0.0
-                    continue
-
-                nota_ponderada = 0.0
-                for asig in asignaturas:
-                    # Buscamos la inscripción del alumno en esa asignatura
-                    inscripcion_asig = self.env['slide.channel.partner'].search([
-                        ('channel_id', '=', asig.id),
-                        ('partner_id', '=', record.partner_id.id)
-                    ], limit=1)
-                    
-                    if inscripcion_asig:
-                        peso = asig.duracion_horas / total_horas
-                        nota_ponderada += inscripcion_asig.nota_final * peso
                 
-                record.nota_final = nota_ponderada
+            nota_ponderada = 0.0
+            total_horas_master = m_data['total_horas']
+            
+            for asig in m_data['asignaturas']:
+                # Recuperamos nota del mapa O(1) en lugar de search O(log N) o DB access
+                nota_asig = scores_map.get((record.partner_id.id, asig.id), 0.0)
+                peso = asig.duracion_horas / total_horas_master
+                nota_ponderada += nota_asig * peso
+            
+            record.nota_final = nota_ponderada
 
     def accion_cerrar_acta(self):
         """ Cierra la nota final del curso/asignatura y dispara la certificación si procede """

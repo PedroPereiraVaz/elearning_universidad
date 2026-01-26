@@ -164,11 +164,14 @@ class Slide(models.Model):
 
     def _propagar_publicacion_asignatura(self):
         """ Sincroniza el estado de la asignatura vinculada con el slide del Master """
+        if self.env.context.get('avoid_recursive_sync'):
+            return
+
         for slide in self.filtered(lambda s: s.asignatura_id):
             if slide.is_published:
-                slide.asignatura_id.sudo().with_context(avoid_slide_sync=True).action_publicar()
+                slide.asignatura_id.sudo().with_context(avoid_slide_sync=True, avoid_recursive_sync=True).action_publicar()
             elif slide.fecha_programada:
-                slide.asignatura_id.sudo().with_context(avoid_slide_sync=True).write({
+                slide.asignatura_id.sudo().with_context(avoid_slide_sync=True, avoid_recursive_sync=True).write({
                     'estado_universidad': 'programado',
                     'fecha_programada_publicacion': slide.fecha_programada
                 })
@@ -210,6 +213,11 @@ class Slide(models.Model):
             if not vals.get('name') and vals.get('asignatura_id'):
                 asignatura = self.env['slide.channel'].browse(vals['asignatura_id'])
                 vals['name'] = asignatura.name
+            
+            # Corrección: Forzar 'es_evaluable' para Asignaturas creadas desde el Master (Wizard)
+            # Como la sincronización inversa usa 'avoid_slide_sync', el Channel no nos devuelve el update.
+            if vals.get('slide_category') == 'sub_course':
+                vals['es_evaluable'] = True
         
         slides = super().create(vals_list)
         slides._asegurar_registros_seguimiento()
@@ -250,6 +258,9 @@ class Slide(models.Model):
         Bidireccionalidad: Si vinculamos una Asignatura a un Master (creando un slide),
         actualizamos el campo master_id de la Asignatura para que queden casados.
         """
+        if self.env.context.get('avoid_recursive_sync'):
+            return
+            
         for slide in self:
             if slide.slide_category == 'sub_course' and slide.asignatura_id and slide.channel_id.tipo_curso == 'master':
                 if slide.asignatura_id.master_id != slide.channel_id:
@@ -259,7 +270,7 @@ class Slide(models.Model):
                         'master_id': slide.channel_id.id,
                         'director_academico_ids': [(6, 0, slide.channel_id.director_academico_ids.ids)]
                     }
-                    slide.asignatura_id.sudo().with_context(avoid_slide_sync=True).write(vals_sync)
+                    slide.asignatura_id.sudo().with_context(avoid_slide_sync=True, avoid_recursive_sync=True).write(vals_sync)
 
     @api.model
     def _cron_publicar_slides_programados(self):
@@ -281,7 +292,7 @@ class Slide(models.Model):
         """ Redirección: Master -> Asignatura (Portada) """
         super()._compute_website_url()
         for slide in self:
-            if slide.asignatura_id:
+            if slide.asignatura_id and slide.id:
                 # SIMPLIFICACIÓN ESTABILIDAD: Redirigimos a la portada de la Asignatura.
                 # Evitamos buscar contenido interno para prevenir recursiones (Crash en Emails).
                 slide.website_url = slide.asignatura_id.website_url
@@ -300,6 +311,8 @@ class Slide(models.Model):
     def user_membership_id(self):
         """ Ayudante para plantillas: devuelve el registro slide.slide.partner del usuario actual """
         self.ensure_one()
+        if not self.id or isinstance(self.id, models.NewId):
+            return self.env['slide.slide.partner']
         return self.env['slide.slide.partner'].sudo().search([
             ('slide_id', '=', self.id),
             ('partner_id', '=', self.env.user.partner_id.id)

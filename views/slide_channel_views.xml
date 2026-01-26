@@ -158,8 +158,8 @@
                      </group>
                      <group>
                          <field name="master_id" 
-                                invisible="tipo_curso != 'asignatura'" 
-                                required="tipo_curso == 'asignatura'"
+                                invisible="tipo_curso != 'asignatura' or context.get('locked_master_context')" 
+                                required="tipo_curso == 'asignatura' and not context.get('locked_master_context')"
                                 readonly="not can_manage_config"/>
                      </group>
                  </group>
@@ -170,7 +170,7 @@
                       </group>
                       <group>
                           <field name="fecha_programada_publicacion" readonly="1"/>
-                          <field name="motivo_rechazo" invisible="not motivo_rechazo"/>
+                          <field name="motivo_rechazo" invisible="1"/>
                       </group>
                  </group>
             </xpath>
@@ -246,7 +246,7 @@
                        invisible="tipo_curso != 'master'" 
                        widget="slide_category_one2many" 
                        mode="list" 
-                       context="{'default_channel_id': id, 'default_is_category': True}">
+                       context="{'default_channel_id': id, 'default_is_category': True, 'form_view_ref': 'elearning_universidad.view_slide_slide_form_university_simple'}">
                      <list decoration-bf="is_category" editable="bottom">
                         <field name="sequence" widget="handle"/>
                         <field name="name"/>
@@ -260,9 +260,10 @@
                         <field name="channel_id" column_invisible="True"/>
                         <field name="asignatura_id" column_invisible="True"/>
                         <field name="question_ids" column_invisible="True"/>
+                        <field name="source_type" column_invisible="True"/>
                         <control>
                             <create name="add_slide_section" string="Agregar Sección" context="{'default_is_category': True}"/>
-                            <create name="add_asignatura" string="Agregar Asignatura" context="{'default_slide_category': 'sub_course', 'default_is_category': False, 'default_master_id': id, 'form_view_ref': 'elearning_universidad.view_slide_slide_form_add_asignatura'}"/>
+                            <create name="add_asignatura" string="Agregar Asignatura" context="{'default_slide_category': 'sub_course', 'default_is_category': False, 'form_view_ref': 'elearning_universidad.view_slide_slide_form_add_asignatura'}"/>
                         </control>
                      </list>
                 </field>

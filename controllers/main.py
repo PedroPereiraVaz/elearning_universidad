@@ -1,6 +1,83 @@
 from odoo import http, _
 from odoo.http import request
+from odoo.addons.website_slides.controllers.main import WebsiteSlides
 import base64
+
+class UniversityWebsiteSlides(WebsiteSlides):
+    
+    def _get_university_domain(self):
+        """ Filtro base para ocultar Asignaturas y Cursos no publicados por la Universidad """
+        return [('tipo_curso', '!=', 'asignatura'), ('estado_universidad', '=', 'publicado')]
+
+    @http.route('/slides', type='http', auth="public", website=True, sitemap=True)
+    def slides_channel_home(self, **post):
+        """ Sobrescribimos la home para filtrar Asignaturas y Cursos no publicados """
+        response = super().slides_channel_home(**post)
+        
+        # Si la respuesta es una renderización, filtramos los datos
+        if response.qcontext:
+            # Filtramos las listas estándar (Popular, Newest, etc)
+            for list_name in ['channels_my', 'channels_popular', 'channels_newest']:
+                if list_name in response.qcontext:
+                    channels = response.qcontext[list_name]
+                    # Filtramos en memoria para no romper la lazy evaluation si es posible,
+                    # pero comúnmente es un recordset.
+                    if channels:
+                        # Ocultar asignaturas y ocultar no publicados (Defensa en profundidad)
+                        # Nota: estado_universidad ya debería estar filtrado si website_published=False,
+                        # pero este doble check evita fugas si alguien fuerza website_published=True manualmente.
+                        filtered = channels.filtered(
+                            lambda c: c.tipo_curso != 'asignatura' and c.estado_universidad == 'publicado'
+                        )
+                        response.qcontext[list_name] = filtered
+        
+        return response
+
+    @http.route('/slides/all', type='http', auth="public", website=True, sitemap=True)
+    def slides_channel_all(self, slide_type=None, my=False, **post):
+        """ Sobrescribimos la vista 'All Courses' para ocultar asignaturas """
+        response = super().slides_channel_all(slide_type, my, **post)
+        if response.qcontext.get('channels'):
+             response.qcontext['channels'] = response.qcontext['channels'].filtered(
+                 lambda c: c.tipo_curso != 'asignatura' and c.estado_universidad == 'publicado'
+             )
+        return response
+
+    def _slide_channel_all_values(self, slide_category=None, slug_tags=None, my=False, **post):
+        """ Sobrescribimos la obtención de datos para búsquedas JSON/AJAX """
+        # Nota: En Odoo 16+, el método puede ser diferente. Verificamos la firma estándar.
+        # En WebsiteSlides es _slide_channel_all_values o similar?
+        # Revisando el código fuente de Odoo 18 (o reciente), suele ser slides_channel_all o prepare_values.
+        # Asumiremos filtrado en el controller route principal que ya cubrimos arriba para HTML.
+        # Si hay endpoint JSON, habría que interceptarlo, pero típicamente es /slides/all
+        return super()._slide_channel_all_values(slide_category, slug_tags, my, **post)
+        
+    @http.route([
+        '/slides/<model("slide.channel"):channel>',
+        '/slides/<model("slide.channel"):channel>/page/<int:page>',
+        '/slides/<model("slide.channel"):channel>/tag/<model("slide.tag"):tag>',
+        '/slides/<model("slide.channel"):channel>/tag/<model("slide.tag"):tag>/page/<int:page>',
+        '/slides/<model("slide.channel"):channel>/category/<model("slide.slide"):category>',
+        '/slides/<model("slide.channel"):channel>/category/<model("slide.slide"):category>/page/<int:page>',
+    ], type='http', auth="public", website=True, sitemap=WebsiteSlides.sitemap_slide)
+    def channel(self, channel, category=None, tag=None, page=1, slide_type=None, search=None, **kw):
+        """ 
+        Manejo de navegación Master -> Asignatura 
+        """
+        # 1. Si es asignatura, permitimos verla SOLO si venimos de un Master o si somos miembros? 
+        # El requerimiento es "la unica forma de acceder a una asignatura es a traves de un master"
+        # Pero eso es navegación. Si tengo el link directo, debería poder verlo si tengo permisos.
+        # Lo importante es que NO aparezca en listas. (Ya hecho arriba).
+        
+        # 2. Inyección de contexto "Padre" para breadcrumbs o botón "Volver al Master"
+        response = super().channel(channel, category, tag, page, slide_type, search, **kw)
+        
+        if channel.tipo_curso == 'asignatura' and channel.master_id:
+            # Inyectamos el master en el contexto para poder poner un botón "Volver al Master" en la vista QWeb
+            response.qcontext['parent_master'] = channel.master_id
+            
+        return response
+
 
 class UniversitySlideController(http.Controller):
 
@@ -55,3 +132,4 @@ class UniversitySlideController(http.Controller):
 
         # 6. Redirigir de vuelta al contenido con un parámetro de éxito
         return request.redirect(slide.website_url + "?delivery_success=1")
+        
