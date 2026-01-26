@@ -51,7 +51,7 @@
         <field name="name">Universidad: Ver calificaciones de sus alumnos</field>
         <field name="model_id" ref="website_slides.model_slide_channel_partner"/>
         <field name="groups" eval="[(4, ref('grupo_personal_docente')), (4, ref('grupo_director_academico'))]"/>
-        <field name="domain_force">['|', ('channel_id.director_academico_ids', 'in', [user.id]), ('channel_id.all_personal_docente_ids', 'in', [user.id])]</field>
+        <field name="domain_force">['|', ('channel_id.director_academico_ids', 'in', [user.id]), ('channel_id.personal_docente_ids', 'in', [user.id])]</field>
     </record>
 
     <!-- Regla: Evaluaciones de Contenido (Acceso para Docentes/Directores asignados) -->

@@ -152,6 +152,27 @@ class SlideChannelPartner(models.Model):
         domain=[('slide_id.es_evaluable', '=', True)]
     )
 
+    # --- Jerarquía y Navegación (Master -> Asignaturas) ---
+    master_id = fields.Many2one('slide.channel', related='channel_id.master_id', string='Master', store=True, readonly=True)
+    
+    asignatura_partner_ids = fields.One2many(
+        'slide.channel.partner', 
+        compute='_compute_asignatura_partner_ids', 
+        string='Asignaturas dadas por este alumno en este Master'
+    )
+
+    @api.depends('channel_id', 'partner_id')
+    def _compute_asignatura_partner_ids(self):
+        for record in self:
+            if record.channel_id.tipo_curso == 'master':
+                record.asignatura_partner_ids = self.search([
+                    ('partner_id', '=', record.partner_id.id),
+                    ('master_id', '=', record.channel_id.id),
+                    ('channel_id.tipo_curso', '=', 'asignatura')
+                ])
+            else:
+                record.asignatura_partner_ids = False
+
     @api.depends(
         'channel_id.tipo_curso', 
         'nota_manual',
@@ -300,3 +321,14 @@ class SlideChannelPartner(models.Model):
             except Exception as e:
                 # Loguear error pero continuar con el siguiente
                 continue
+    def action_open_gradebook_form(self):
+        """ Abre la vista formulario de esta inscripción específica (usado en botones) """
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'res_model': 'slide.channel.partner',
+            'res_id': self.id,
+            'view_mode': 'form',
+            'view_id': self.env.ref('elearning_universidad.view_slide_channel_partner_form_gradebook').id,
+            'target': 'current',
+        }

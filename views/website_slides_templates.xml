@@ -5,7 +5,7 @@
         <xpath expr="//div[@t-if=&quot;slide.slide_category == 'article'&quot;]" position="after">
             <div t-if="slide.slide_category == 'delivery'" class="o_wslides_lesson_content_type">
                 <div class="container py-4">
-                    <div t-if="not channel.is_member" class="alert alert-info shadow-sm" role="alert">
+                    <div t-if="not slide.channel_id.is_member" class="alert alert-info shadow-sm" role="alert">
                         <h4 class="alert-heading fw-bold"><i class="fa fa-info-circle me-2"/>Inscripción Requerida</h4>
                         <p class="mb-0">Debes unirte a este curso para poder enviar y gestionar tus entregas académicas.</p>
                     </div>
@@ -92,6 +92,91 @@
             <span t-if="slide.slide_category == 'sub_course'" class="badge text-bg-info ms-auto me-2 px-2 py-1 small fw-bold">
                 ASIGNATURA
             </span>
+        </xpath>
+    </template>
+    <!-- 4. Fix Link for Sub-Courses (Asignaturas) in List View -->
+    <template id="course_slides_list_slide_university" inherit_id="website_slides.course_slides_list_slide">
+         <xpath expr="//a[hasclass('o_wslides_js_slides_list_slide_link')]" position="replace">
+            <a t-if="not invite_preview and (slide.is_preview or channel.is_member or channel.can_publish)" 
+               class="o_wslides_js_slides_list_slide_link" 
+               t-att-href="slide.website_url">
+                <span t-field="slide.name"/>
+            </a>
+         </xpath>
+    </template>
+    <!-- 5. Disable Unsubscribe for Subjects (Asignaturas) -->
+    <template id="course_join_university" inherit_id="website_slides.course_join">
+        <xpath expr="//button[hasclass('o_wslides_js_channel_unsubscribe')]" position="replace">
+            <t t-if="channel.tipo_curso == 'asignatura'">
+                 <div class="d-flex align-items-center alert my-0 px-2 px-xl-3 bg-100 w-100 text-muted" title="Para desinscribirse, debe hacerlo desde el Master.">
+                    <t t-call="website_slides.slides_misc_user_image">
+                        <t t-set="img_class" t-value="'rounded-circle me-1'"/>
+                        <t t-set="img_style" t-value="'width: 1.4em; height: 1.4em;'"/>
+                    </t>
+                    <h6 class="d-flex flex-grow-1 my-0">Inscrito (Asignatura)</h6>
+                    <i class="fa fa-check text-success"/>
+                    <i class="fa fa-lock ms-2" title="Gestionado por el Master"/>
+                </div>
+            </t>
+            <t t-else="">
+                <button class="d-flex align-items-center alert my-0 px-2 px-xl-3 bg-100 w-100 o_wslides_js_channel_unsubscribe"
+                        t-att-data-channel-id="channel.id"
+                        t-att-data-is-follower="channel.message_is_follower"
+                        t-att-data-enroll="channel.enroll"
+                        t-att-data-visibility="channel.visibility">
+                    <t t-call="website_slides.slides_misc_user_image">
+                        <t t-set="img_class" t-value="'rounded-circle me-1'"/>
+                        <t t-set="img_style" t-value="'width: 1.4em; height: 1.4em;'"/>
+                    </t>
+                    <h6 class="d-flex flex-grow-1 my-0">Estás inscrito</h6>
+                    <i class="fa fa-check"/>
+                    <i class="fa fa-times"/>
+                </button>
+            </t>
+        </xpath>
+    </template>
+    <!-- 6. Embed View for Delivery (Fullscreen support) -->
+    <template id="embed_slide_university" inherit_id="website_slides.embed_slide">
+        <xpath expr="//div[@id='PDFSlideViewer']" position="inside">
+            <div t-if="slide.slide_category == 'delivery'" class="container-fluid py-3" style="height: 100%; overflow-y: auto;">
+                 <t t-set="user_eval" t-value="slide.sudo().user_membership_id"/>
+                 
+                 <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-primary text-white py-2">
+                        <h5 class="card-title mb-0 fw-bold"><i class="fa fa-cloud-upload me-2"/>Entrega de Trabajo</h5>
+                    </div>
+                    <div class="card-body">
+                         <!-- Caso: Ya calificado -->
+                        <div t-if="user_eval and user_eval.estado_evaluacion == 'evaluado'" class="mb-2 text-center">
+                             <div class="bg-success text-white rounded-circle p-2 d-inline-block mb-2">
+                                <i class="fa fa-check fa-2x"/>
+                            </div>
+                            <h5 class="text-success">Calificación: <span t-field="user_eval.nota_evaluacion"/> / 10</h5>
+                        </div>
+
+                        <!-- Caso: Pendiente Revisión -->
+                         <div t-elif="user_eval and user_eval.estado_evaluacion == 'pendiente_revision'" class="alert alert-warning">
+                            <i class="fa fa-clock-o me-2"/> Esperando Revisión
+                            <br/><small>Archivo: <span t-field="user_eval.nombre_archivo"/></small>
+                        </div>
+
+                         <!-- Caso: Formulario -->
+                        <div t-if="not user_eval or user_eval.estado_evaluacion == 'pendiente_presentar'">
+                             <form action="/slides/slide/upload_delivery" method="post" enctype="multipart/form-data">
+                                <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                                <input type="hidden" name="slide_id" t-att-value="slide.id"/>
+                                <div class="mb-3">
+                                    <label class="form-label text-muted">Subir archivo (PDF, ZIP...)</label>
+                                    <input type="file" name="file" class="form-control" required="required"/>
+                                </div>
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="fa fa-send me-2"/>Enviar
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                 </div>
+            </div>
         </xpath>
     </template>
 </odoo>

@@ -288,6 +288,7 @@ class Slide(models.Model):
                 'fecha_programada': False # Limpiamos para no re-procesar
             })
 
+    @api.depends('asignatura_id')
     def _compute_website_url(self):
         """ Redirección: Master -> Asignatura (Portada) """
         super()._compute_website_url()
@@ -307,13 +308,4 @@ class Slide(models.Model):
             return super(Slide, auto_completable)._action_mark_completed()
         return False
 
-    @property
-    def user_membership_id(self):
-        """ Ayudante para plantillas: devuelve el registro slide.slide.partner del usuario actual """
-        self.ensure_one()
-        if not self.id or isinstance(self.id, models.NewId):
-            return self.env['slide.slide.partner']
-        return self.env['slide.slide.partner'].sudo().search([
-            ('slide_id', '=', self.id),
-            ('partner_id', '=', self.env.user.partner_id.id)
-        ], limit=1)
+

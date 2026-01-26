@@ -64,16 +64,17 @@ class UniversityWebsiteSlides(WebsiteSlides):
         """ 
         Manejo de navegación Master -> Asignatura 
         """
-        # 1. Si es asignatura, permitimos verla SOLO si venimos de un Master o si somos miembros? 
-        # El requerimiento es "la unica forma de acceder a una asignatura es a traves de un master"
-        # Pero eso es navegación. Si tengo el link directo, debería poder verlo si tengo permisos.
-        # Lo importante es que NO aparezca en listas. (Ya hecho arriba).
+        # Solución Error TypeError: '<' not supported between instances of 'NoneType' and 'int'
+        # El método original espera recibir channel_id en kwargs o como argumento si no se pasa por URL.
+        # Al usar el converter de modelo, channel es un recordset, pero channel_id es None por defecto en la firma original.
+        channel_id = channel.id if channel else kw.get('channel_id')
         
-        # 2. Inyección de contexto "Padre" para breadcrumbs o botón "Volver al Master"
-        response = super().channel(channel, category, tag, page, slide_type, search, **kw)
+        # 1. Inyección para breadcrumbs/navegación
+        # Llamamos a super pasando explícitamente channel_id para evitar el fallo en validaciones upstream
+        response = super().channel(channel=channel, category=category, tag=tag, page=page, slide_type=slide_type, search=search, channel_id=channel_id, **kw)
         
         if channel.tipo_curso == 'asignatura' and channel.master_id:
-            # Inyectamos el master en el contexto para poder poner un botón "Volver al Master" en la vista QWeb
+            # Inyectamos el master en el contexto
             response.qcontext['parent_master'] = channel.master_id
             
         return response
@@ -130,6 +131,11 @@ class UniversitySlideController(http.Controller):
             'fecha_entrega': http.fields.Datetime.now()
         })
 
-        # 6. Redirigir de vuelta al contenido con un parámetro de éxito
+        # 6. Marcar como completado automáticamente
+        # Nota: slide.action_mark_completed() marca para el usuario actual.
+        # Pero aquí ya tenemos eval_record, podríamos usarlo si hay API, pero la API estándar está en slide.
+        slide.action_mark_completed()
+
+        # 7. Redirigir de vuelta al contenido con un parámetro de éxito
         return request.redirect(slide.website_url + "?delivery_success=1")
         
