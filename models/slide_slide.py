@@ -166,9 +166,9 @@ class Slide(models.Model):
         """ Sincroniza el estado de la asignatura vinculada con el slide del Master """
         for slide in self.filtered(lambda s: s.asignatura_id):
             if slide.is_published:
-                slide.asignatura_id.sudo().action_publicar()
+                slide.asignatura_id.sudo().with_context(avoid_slide_sync=True).action_publicar()
             elif slide.fecha_programada:
-                slide.asignatura_id.sudo().write({
+                slide.asignatura_id.sudo().with_context(avoid_slide_sync=True).write({
                     'estado_universidad': 'programado',
                     'fecha_programada_publicacion': slide.fecha_programada
                 })

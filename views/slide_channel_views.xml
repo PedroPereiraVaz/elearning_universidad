@@ -125,7 +125,7 @@
                 <button name="action_publicar" string="Publicar Ahora" type="object" 
                         class="btn-success"
                         groups="elearning_universidad.grupo_administrador_universidad,elearning_universidad.grupo_director_academico"
-                        invisible="estado_universidad not in ['presentado', 'subsanacion', 'programado'] and not (tipo_curso == 'asignatura' and estado_universidad == 'borrador')"/>
+                        invisible="not can_manage_config or (estado_universidad not in ['presentado', 'subsanacion', 'programado'] and not (tipo_curso == 'asignatura' and estado_universidad == 'borrador'))"/>
                 
                 <button name="action_finalizar" string="Finalizar Curso" type="object" 
                         class="btn-danger"
@@ -262,7 +262,7 @@
                         <field name="question_ids" column_invisible="True"/>
                         <control>
                             <create name="add_slide_section" string="Agregar Sección" context="{'default_is_category': True}"/>
-                            <create name="add_asignatura" string="Agregar Asignatura" context="{'default_slide_category': 'sub_course', 'default_is_category': False, 'form_view_ref': 'elearning_universidad.view_slide_slide_form_add_asignatura'}"/>
+                            <create name="add_asignatura" string="Agregar Asignatura" context="{'default_slide_category': 'sub_course', 'default_is_category': False, 'default_master_id': id, 'form_view_ref': 'elearning_universidad.view_slide_slide_form_add_asignatura'}"/>
                         </control>
                      </list>
                 </field>
@@ -289,7 +289,7 @@
                          string="Confirmar Programación" 
                          type="object" 
                          class="btn-primary"
-                         invisible="not fecha_programada_publicacion or estado_universidad in ['programado', 'publicado']"/>
+                         invisible="not fecha_programada_publicacion or estado_universidad in ['programado', 'publicado', 'finalizado']"/>
             </xpath>
             
             <!-- CAMPO FECHA PROGRAMADA EN FORMULARIO (Si no existe, lo inyectamos) -->

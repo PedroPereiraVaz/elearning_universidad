@@ -92,7 +92,7 @@
                         </div>
                         <field name="asignatura_id" 
                                options="{'no_quick_create': True}" 
-                               context="{'default_tipo_curso': 'asignatura', 'default_master_id': channel_id, 'avoid_slide_sync': True}"
+                               context="{'default_tipo_curso': 'asignatura', 'avoid_slide_sync': True}"
                                domain="[('tipo_curso', '=', 'asignatura'), ('master_id', '=', False)]"
                                required="1"/>
                         

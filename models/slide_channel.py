@@ -370,8 +370,13 @@ class CanalSlide(models.Model):
                 'estado_universidad': 'rechazado',
                 'motivo_rechazo': motivo
             })
-            # Notificación automática (tracking)
-            pass
+            # Notificación de Rechazo con Motivo
+            html_body = record._format_notification_html(
+                _("Curso Rechazado"),
+                _("El curso ha sido rechazado por el Administrador.<br/><strong>Motivo:</strong> %s") % motivo,
+                tipo='danger'
+            )
+            record.message_post(body=html_body, subtype_xmlid='mail.mt_comment')
 
     def action_subsanar(self):
         """ Equivale a volver a presentar tras un rechazo """
@@ -401,8 +406,13 @@ class CanalSlide(models.Model):
                 'fecha_programada_publicacion': fecha
             })
             # La constraint _check_requisitos_publicacion saltará aquí al guardar 'programado'
-            # Notificación automática (tracking)
-            pass
+            # Notificación de Programación
+            html_body = record._format_notification_html(
+                _("Publicación Programada"),
+                _("El curso se ha programado para publicarse el <strong>%s</strong>.") % fecha,
+                tipo='info'
+            )
+            record.message_post(body=html_body, subtype_xmlid='mail.mt_comment')
 
     def action_publicar(self):
         for record in self:
@@ -422,8 +432,13 @@ class CanalSlide(models.Model):
                 'is_published': True
             })
             # La constraint saltará aquí si falla algo
-            # Notificación automática (tracking)
-            pass
+            # Notificación de Publicación
+            html_body = record._format_notification_html(
+                _("Curso Publicado"),
+                _("El curso ha sido publicado y ya es visible para los usuarios."),
+                tipo='success'
+            )
+            record.message_post(body=html_body, subtype_xmlid='mail.mt_comment')
 
     def action_finalizar(self):
         if not self.env.user.has_group('elearning_universidad.grupo_administrador_universidad'):
@@ -436,8 +451,13 @@ class CanalSlide(models.Model):
                 'active': False,
                 'is_published': False
             })
-            # Notificación automática por cambio de estado (tracking)
-            pass
+            # Notificación de Finalización
+            html_body = record._format_notification_html(
+                _("Curso Finalizado"),
+                _("El curso ha sido finalizado y archivado."),
+                tipo='secondary'
+            )
+            record.message_post(body=html_body, subtype_xmlid='mail.mt_comment')
 
     # --- Restricciones de Creación y Edición ---
     @api.model_create_multi
@@ -480,6 +500,9 @@ class CanalSlide(models.Model):
             curso._sincronizar_producto_universidad()
             if not self.env.context.get('avoid_slide_sync'):
                 curso._sincronizar_slide_master() # Automagically create slide in Master
+            
+            # Sincronización inicial de seguidores (Directores/Docentes)
+            curso._sincronizar_seguidores_staff()
         
         return cursos
 
