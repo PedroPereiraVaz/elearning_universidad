@@ -194,4 +194,15 @@
             <attribute name="t-if">slide.slide_category in ['certification', 'exam']</attribute>
         </xpath>
     </template>
+
+    <!-- 9. [NUEVO] Contenido Fullscreen para Entregables (Delivery) -->
+    <!-- Native slide_fullscreen_content branches by category. We need to add our branch. -->
+    <template id="slide_fullscreen_content_delivery" inherit_id="website_slides.slide_fullscreen_content">
+        <xpath expr="//div[@t-if=&quot;slide.slide_category == 'article'&quot;]" position="after">
+            <div t-if="slide.slide_category == 'delivery'" class="bg-white h-100 overflow-auto">
+                 <!-- Reutilizamos la lógica del Embed que ya tiene el formulario -->
+                 <t t-call="website_slides.embed_slide"/>
+            </div>
+        </xpath>
+    </template>
 </odoo>
