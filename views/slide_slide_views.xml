@@ -7,6 +7,13 @@
         <field name="arch" type="xml">
 
             <!-- Inyectar ESTADO PUBLICACIÓN y PROGRAMACIÓN estilo Academy -->
+            <xpath expr="//field[@name='user_id']" position="before">
+                <field name="allowed_user_ids" invisible="1"/>
+            </xpath>
+            <xpath expr="//field[@name='user_id']" position="attributes">
+                 <attribute name="domain">[('id', 'in', allowed_user_ids)]</attribute>
+                 <!-- Opcional: Bloquear si no hay curso -->
+            </xpath>
             <xpath expr="//field[@name='user_id']" position="after">
                 <label for="is_published" string="Estado Publicación"/>
                 <div class="o_row">
@@ -39,6 +46,7 @@
             <!-- INYECTAR CAMPOS DEBAJO DE CATEGORÍA -->
             <xpath expr="//field[@name='slide_category']" position="after">
                  <field name="es_evaluable" widget="boolean_toggle"
+                        force_save="1"
                         invisible="slide_category not in ['exam', 'delivery', 'sub_course', 'certification']"/>
                  
                  <field name="asignatura_id" 
@@ -95,33 +103,19 @@
 
                         <!-- Selección de Asignatura -->
                         <div class="alert alert-info" role="alert" colspan="2">
-                            Seleccione la Asignatura que desea vincular o puede crear una nueva escribiendo el nombre. Puede programar su visibilidad.
+                            Seleccione la Asignatura que desea vincular. <b>Importante:</b> La asignatura debe tener una <u>Duración > 0 horas</u> para computar en la nota del Master.
                         </div>
                         <field name="asignatura_id" 
                                options="{'no_quick_create': True}" 
-                               context="{'default_tipo_curso': 'asignatura', 'avoid_slide_sync': True, 'locked_master_context': True}"
+                               context="{'default_tipo_curso': 'asignatura', 'avoid_slide_sync': True, 'locked_master_context': True, 'hide_workflow_buttons': True}"
                                domain="[('tipo_curso', '=', 'asignatura'), ('master_id', '=', False)]"
                                required="1"/>
+                        <field name="asignatura_duracion" invisible="not asignatura_id" decoration-danger="asignatura_duracion == 0"/>
                         
-                        <!-- REUTILIZACIÓN: Controles de Publicación (Estándar de Contenidos) -->
-                        <label for="is_published" string="Estado Publicación"/>
-                        <div class="o_row">
-                            <field name="active" invisible="1"/>
-                            <field name="is_published" widget="boolean_toggle"/>
-                            <span class="badge text-bg-success" invisible="not is_published">Publicado</span>
-                            <span class="badge text-bg-info" invisible="is_published or not fecha_programada">Programado</span>
-                            <span class="badge text-bg-warning" invisible="is_published or fecha_programada">Borrador</span>
-                        </div>
-                        
-                        <label for="fecha_programada" string="Programar"/>
-                        <div class="o_row">
-                            <field name="fecha_programada" nolabel="1"/>
-                            <button name="action_programar_publicacion" 
-                                    string="Confirmar" 
-                                    type="object" 
-                                    class="btn btn-link ms-2"
-                                    invisible="not fecha_programada or is_published"/>
-                        </div>
+                        <!-- REUTILIZACIÓN: Controles de Publicación ELIMINADOS por solicitud -->
+                        <field name="active" invisible="1"/>
+                        <field name="is_published" invisible="1"/>
+                        <field name="fecha_programada" invisible="1"/>
                     </group>
                 </sheet>
             </form>

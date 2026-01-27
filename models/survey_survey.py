@@ -31,3 +31,40 @@ class Survey(models.Model):
         if self.is_exam and self.scoring_type == 'no_scoring':
             self.scoring_type = 'scoring_with_answers'
             return {'warning': {'title': 'Opción no válida', 'message': 'Los exámenes universitarios deben tener puntuación obligatoriamente.'}}
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        for vals in vals_list:
+            if vals.get('certification'):
+                self._check_certification_permission()
+        return super().create(vals_list)
+
+    def write(self, vals):
+        if vals.get('certification'):
+            self._check_certification_permission()
+        return super().write(vals)
+
+    def _check_certification_permission(self):
+        """ Impide que los docentes creen certificaciones (Solo Admins/Directores) """
+        user = self.env.user
+        if user.has_group('elearning_universidad.grupo_personal_docente') and \
+           not user.has_group('elearning_universidad.grupo_director_academico') and \
+           not user.has_group('elearning_universidad.grupo_administrador_universidad'):
+            raise ValidationError("Solo los Directores Académicos o Administradores pueden crear Certificaciones.")
+
+    # --- Ayuda para Dominios XML ---
+    is_university_admin = fields.Boolean(
+        string='Es Admin Universidad', 
+        compute='_compute_is_university_admin', 
+        search='_search_is_university_admin'
+    )
+
+    def _compute_is_university_admin(self):
+        is_admin = self.env.user.has_group('elearning_universidad.grupo_administrador_universidad')
+        for record in self:
+            record.is_university_admin = is_admin
+
+    def _search_is_university_admin(self, operator, value):
+        if self.env.user.has_group('elearning_universidad.grupo_administrador_universidad'):
+            return [(1, '=', 1)] # Mostrar todo si es admin
+        return [(0, '=', 1)] # No mostrar nada extra si no es admin (se aplican el resto de filtros)

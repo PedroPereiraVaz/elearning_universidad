@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        
+        <!-- REGLAS DE SEGURIDAD PARA CONTENIDOS (slide.slide) -->
+
+        <!-- 1. PERSONAL DOCENTE: Solo ver sus propios contenidos -->
+        <!-- "solo vea sus contenidos (los que esta como responsable)" -->
+        <record id="rule_slide_slide_personal_docente_own" model="ir.rule">
+            <field name="name">Contenidos: Docente (Solo Propios)</field>
+            <field name="model_id" ref="website_slides.model_slide_slide"/>
+            <field name="domain_force">[('user_id', '=', user.id)]</field>
+            <field name="groups" eval="[(4, ref('elearning_universidad.grupo_personal_docente'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="True"/>
+            <field name="perm_unlink" eval="True"/>
+        </record>
+
+        <!-- 2. DIRECTOR ACADÉMICO: Ver contenidos de sus cursos dirigidos -->
+        <!-- "los contenidos de los cursos en los que estan como directores academicos" -->
+        <record id="rule_slide_slide_director_academico_course" model="ir.rule">
+            <field name="name">Contenidos: Director (Cursos Dirigidos)</field>
+            <field name="model_id" ref="website_slides.model_slide_slide"/>
+            <field name="domain_force">[('channel_id.director_academico_ids', 'in', user.id)]</field>
+            <field name="groups" eval="[(4, ref('elearning_universidad.grupo_director_academico'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="True"/>
+            <field name="perm_unlink" eval="True"/>
+        </record>
+
+        <!-- NOTA: El Administrador de Universidad suele heredar permisos globales o tener regla propia. 
+             Si hereda de 'Website Slides / Manager', verá todo. Si no, habría que añadir regla global.
+             Asumimos que el Admin tiene acceso total por su rol. 
+        -->
+
+    </data>
+</odoo>

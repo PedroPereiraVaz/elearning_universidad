@@ -1,6 +1,160 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <!-- VISTA FORMULARIO: DETALLE DE EVALUACIÓN INDIVIDUAL -->
+
+    <!-- ============================================================ -->
+    <!-- 1. PUNTO DE ENTRADA: SELECCIÓN DE CURSO (MIGAS DE PAN NIVEL 0) -->
+    <!-- ============================================================ -->
+    <record id="view_slide_channel_tree_gradebook_selection" model="ir.ui.view">
+        <field name="name">slide.channel.tree.gradebook.selection</field>
+        <field name="model">slide.channel</field>
+        <field name="arch" type="xml">
+            <list string="Seleccione un Curso para Evaluar" create="0" delete="0" edit="0"
+                  action="action_view_gradebook_students" type="object">
+                <field name="name" string="Curso / Master"/>
+                <field name="tipo_curso"/>
+                <field name="director_academico_ids" widget="many2many_tags" string="Dirección Académica"/>
+                <field name="total_slides" string="Contenidos"/>
+                <field name="partner_ids" invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_gradebook_course_selection" model="ir.actions.act_window">
+        <field name="name">Boletín de Notas - Mis Cursos</field>
+        <field name="res_model">slide.channel</field>
+        <field name="view_mode">list</field>
+        <field name="view_id" ref="view_slide_channel_tree_gradebook_selection"/>
+        <!-- Dominio: Solo mostramos cursos que no son asignaturas "sueltas" (el usuario entra por Master o Micro) -->
+        <!-- OJO: Si quiere ver asignaturas sueltas, quitamos el dominio. Asumimos Masters y Micros como contenedores principales -->
+        <field name="domain">[('tipo_curso', '!=', 'asignatura')]</field> 
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No tienes cursos asignados para evaluar.
+            </p>
+            <p>
+                Aquí aparecerán los Masters y Microcredenciales donde eres Director Académico o Docente.
+            </p>
+        </field>
+    </record>
+
+    <!-- ============================================================ -->
+    <!-- 2. NIVEL 1: LISTADO DE ALUMNOS (INSCRIPCIONES) -->
+    <!-- ============================================================ -->
+    <record id="view_slide_channel_partner_tree_gradebook" model="ir.ui.view">
+        <field name="name">slide.channel.partner.tree.gradebook</field>
+        <field name="model">slide.channel.partner</field>
+        <field name="arch" type="xml">
+            <list string="Listado de Alumnos" create="0" delete="0" edit="0" action="action_open_gradebook_form" type="object">
+                <field name="partner_id" string="Alumno"/>
+                <field name="channel_id" string="Curso"/>
+                <!-- Eliminado gradebook_master_id visualmente -->
+                <field name="gradebook_master_id" column_invisible="True"/> 
+                <field name="nota_final" widget="float" string="Nota Académica"/>
+                <field name="estado_nota" widget="badge" 
+                       decoration-warning="estado_nota == 'pendiente_revision'" 
+                       decoration-success="estado_nota in ['evaluado', 'certificado']"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- ============================================================ -->
+    <!-- 3. NIVEL 2: DETALLE DEL ALUMNO (ACTA ACADÉMICA) -->
+    <!-- ============================================================ -->
+    <record id="view_slide_channel_partner_form_gradebook" model="ir.ui.view">
+        <field name="name">slide.channel.partner.form.gradebook</field>
+        <field name="model">slide.channel.partner</field>
+        <field name="arch" type="xml">
+            <form string="Acta Académica" create="0">
+                <header>
+                    <button name="accion_cerrar_acta" string="Cerrar Acta" type="object" class="btn-primary"
+                            invisible="estado_nota not in ['pendiente_presentar', 'pendiente_revision']"/>
+                    <button name="action_issue_university_degree" string="Emitir Título" type="object" class="btn-success"
+                            invisible="not tiene_titulo_curso or estado_nota != 'evaluado' or not titulo_emitido == False"/>
+                    <field name="estado_nota" widget="statusbar"/>
+                </header>
+                <sheet>
+                    <!-- Campo técnico para control UI -->
+                    <field name="gradebook_master_id" invisible="1"/>
+                    <field name="can_grade_manually" invisible="1"/>
+                    <field name="tiene_titulo_curso" invisible="1"/>
+                    
+                    <div class="oe_title">
+                        <h1><field name="partner_id" readonly="1"/></h1>
+                        <h3><field name="channel_id" readonly="1"/></h3>
+                    </div>
+                    <group>
+                        <group string="Resumen">
+                            <!-- Nota solo editable si se activa corrección manual -->
+                            <field name="nota_final" widget="float" 
+                                   readonly="not nota_manual" force_save="1"/>
+                            
+                            <!-- Toggle Corrección Manual: Oculto si es Master, si ya está cerrada, o SIN PERMISO -->
+                            <field name="nota_manual" widget="boolean_toggle" 
+                                   invisible="gradebook_master_id == channel_id or estado_nota in ['evaluado', 'certificado'] or not can_grade_manually"/>
+                        </group>
+                        <group string="Certificación" invisible="not titulo_emitido">
+                            <field name="titulo_emitido"/>
+                            <field name="fecha_emision_titulo"/>
+                        </group>
+                    </group>
+                    
+                    <notebook>
+                        <!-- PESTAÑA UNIFICADA: DETALLE ACADÉMICO -->
+                        <page name="detalle_academico" string="Contenido Académico">
+                            
+                            <!-- CASO A: SI ES MASTER -> Muestra Lista de Asignaturas -->
+                            <field name="tipo_curso_rel" invisible="1"/>
+                            <field name="asignatura_partner_ids" readonly="1" invisible="not tipo_curso_rel == 'master'">
+                                <!-- ACTION: Click en fila abre la asignatura (recursivo) -->
+                                <list string="Asignaturas" create="0" delete="0" edit="0" action="action_open_gradebook_form" type="object">
+                                    <field name="channel_id" string="Asignatura"/>
+                                    <field name="nota_final" widget="float" string="Nota (0-10)"/>
+                                    <field name="estado_nota" widget="badge" decoration-success="estado_nota == 'evaluado'"/>
+                                    <button name="action_open_gradebook_form" type="object" string="Evaluar" icon="fa-external-link" class="btn-primary"/>
+                                </list>
+                             </field>
+
+                            <!-- CASO B: SI ES ASIGNATURA/MICRO -> Muestra Lista de Contenidos -->
+                            <!-- Ocultar completamente si es Master -->
+                            <field name="evaluaciones_ids" invisible="tipo_curso_rel == 'master'">
+                                <list editable="bottom" create="0" delete="0" decoration-warning="estado_evaluacion == 'pendiente_revision'">
+                                    <field name="slide_id" readonly="1" string="Contenido"/>
+                                    
+                                    <!-- Propiedad Evaluable: Icono o texto -->
+                                    <field name="slide_category" column_invisible="True"/>
+                                    <field name="es_evaluable" widget="boolean_toggle" readonly="1" string="¿Nota?"/>
+                                    
+                                    <!-- Detalles de Entrega (Solo visibles si tienen sentido) -->
+                                    <field name="fecha_entrega" readonly="1" optional="show"/>
+                                    <field name="archivo_entrega" widget="binary" filename="nombre_archivo" optional="show"/>
+                                    <field name="nombre_archivo" column_invisible="True"/>
+                                    
+                                    <!-- Calificación (Siempre editable para feedback) -->
+                                    <field name="nota_evaluacion" string="Calificación"/>
+                                    
+                                    <field name="estado_evaluacion" widget="badge" 
+                                           decoration-info="estado_evaluacion == 'pendiente_presentar'"
+                                           decoration-warning="estado_evaluacion == 'pendiente_revision'"
+                                           decoration-success="estado_evaluacion == 'evaluado'"/>
+                                           
+                                    <!-- Botón Renombrado: Confirmar -> Evaluado -->
+                                    <button name="accion_confirmar_nota" string="Evaluado" type="object" icon="fa-check-circle"
+                                            invisible="estado_evaluacion == 'evaluado'" class="btn-sm btn-success"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+
+    <!-- ============================================================ -->
+    <!-- 4. VISTAS AUXILIARES (Legacy limpias o reutlizadas) -->
+    <!-- ============================================================ -->
+    
+    <!-- Vista para POPUP de Evaluación Individual (si se usa) -->
     <record id="view_slide_slide_partner_form_university" model="ir.ui.view">
         <field name="name">slide.slide.partner.form.university</field>
         <field name="model">slide.slide.partner</field>
@@ -30,14 +184,14 @@
         </field>
     </record>
 
-    <!-- VISTA LISTA: PENDIENTES DE EVALUAR -->
+    <!-- Acción Legacy: Pendientes de Evaluar (Accesible desde menú secundario) -->
     <record id="view_slide_slide_partner_tree_pending" model="ir.ui.view">
         <field name="name">slide.slide.partner.tree.pending</field>
         <field name="model">slide.slide.partner</field>
         <field name="arch" type="xml">
             <list string="Pendientes de Evaluar" create="0" edit="0" decoration-warning="estado_evaluacion == 'pendiente_revision'">
-                <field name="partner_id"/>
-                <field name="channel_id"/>
+                <field name="partner_id" string="Alumno"/>
+                <field name="channel_id" string="Curso/Contenido"/>
                 <field name="slide_id"/>
                 <field name="fecha_entrega"/>
                 <field name="archivo_entrega" widget="binary" filename="nombre_archivo" string="Entrega"/>
@@ -47,115 +201,12 @@
         </field>
     </record>
 
-    <!-- VISTA LISTA: BOLETÍN DE NOTAS (INSCRIPCIONES) -->
-    <record id="view_slide_channel_partner_tree_gradebook" model="ir.ui.view">
-        <field name="name">slide.channel.partner.tree.gradebook</field>
-        <field name="model">slide.channel.partner</field>
-        <field name="arch" type="xml">
-            <list string="Boletín de Notas" create="0" delete="0">
-                <field name="master_id" invisible="1"/>
-                <field name="partner_id"/>
-                <field name="channel_id"/>
-                <field name="nota_final" widget="progressbar" string="Calificación Final" avg="Promedio"/>
-                <field name="estado_nota" widget="badge" 
-                       decoration-info="estado_nota == 'pendiente_presentar'" 
-                       decoration-warning="estado_nota == 'pendiente_revision'" 
-                       decoration-success="estado_nota in ['evaluado', 'certificado']"/>
-            </list>
-        </field>
-    </record>
-
-    <!-- VISTA FORMULARIO: ACTA ACADÉMICA -->
-    <record id="view_slide_channel_partner_form_gradebook" model="ir.ui.view">
-        <field name="name">slide.channel.partner.form.gradebook</field>
-        <field name="model">slide.channel.partner</field>
-        <field name="arch" type="xml">
-            <form string="Acta Académica" create="0">
-                <header>
-                    <button name="accion_cerrar_acta" string="Cerrar Acta" type="object" class="btn-primary"
-                            invisible="estado_nota not in ['pendiente_presentar', 'pendiente_revision']"/>
-                    <button name="action_issue_university_degree" string="Emitir Título" type="object" class="btn-success"
-                            invisible="estado_nota != 'evaluado' or not titulo_emitido == False"/>
-                    <field name="estado_nota" widget="statusbar"/>
-                </header>
-                <sheet>
-                    <div class="oe_title">
-                        <h1>
-                            <field name="partner_id" readonly="1"/>
-                        </h1>
-                        <h3>
-                            <field name="channel_id" readonly="1"/>
-                            <field name="master_id" invisible="1"/>
-                        </h3>
-                    </div>
-                    <group>
-                        <group string="Resumen Académico">
-                            <field name="nota_final" widget="float"/>
-                            <field name="nota_manual" widget="boolean_toggle"/>
-                        </group>
-                        <group string="Certificación" invisible="not titulo_emitido">
-                            <field name="titulo_emitido"/>
-                            <field name="fecha_emision_titulo"/>
-                        </group>
-                    </group>
-                    <notebook>
-                        <page name="asignaturas" string="Asignaturas del Master" invisible="not asignatura_partner_ids">
-                             <field name="asignatura_partner_ids" readonly="1">
-                                <list string="Asignaturas" decoration-success="estado_nota in ['evaluado', 'certificado']">
-                                    <field name="channel_id"/>
-                                    <field name="nota_final" widget="progressbar"/>
-                                    <field name="estado_nota" widget="badge"/>
-                                    <button name="action_open_gradebook_form" string="Ir a Calificar" type="object" icon="fa-external-link"/>
-                                </list>
-                             </field>
-                        </page>
-                        <page name="evaluaciones" string="Desglose de Calificaciones">
-                            <field name="evaluaciones_ids">
-                                <list editable="bottom" create="0">
-                                    <field name="slide_id" readonly="1"/>
-                                    <field name="fecha_entrega" readonly="1"/>
-                                    <field name="nota_evaluacion"/>
-                                    <field name="estado_evaluacion" widget="badge"/>
-                                    <button name="accion_confirmar_nota" string="Cerrar" type="object" icon="fa-check" 
-                                            invisible="estado_evaluacion == 'evaluado'"/>
-                                </list>
-                            </field>
-                        </page>
-                    </notebook>
-                </sheet>
-            </form>
-        </field>
-    </record>
-
-    <!-- ACCIÓN: PENDIENTES DE EVALUAR -->
     <record id="action_universidad_pendientes" model="ir.actions.act_window">
         <field name="name">Pendientes de Evaluar</field>
         <field name="res_model">slide.slide.partner</field>
         <field name="view_mode">list,form</field>
         <field name="domain">[('estado_evaluacion', '=', 'pendiente_revision')]</field>
         <field name="view_id" ref="view_slide_slide_partner_tree_pending"/>
-        <field name="help" type="html">
-            <p class="o_view_nocontent_smiling_face">
-                ¡Todo al día!
-            </p>
-            <p>
-                No hay entregas pendientes de revisión en tus cursos.
-            </p>
-        </field>
     </record>
 
-    <!-- ACCIÓN: BOLETÍN DE NOTAS -->
-    <record id="action_universidad_boletin" model="ir.actions.act_window">
-        <field name="name">Boletín de Notas</field>
-        <field name="res_model">slide.channel.partner</field>
-        <field name="view_mode">list,form</field>
-        <field name="view_id" ref="view_slide_channel_partner_tree_gradebook"/>
-        <field name="context">{'group_by': 'master_id'}</field>
-        <field name="help" type="html">
-            <p class="o_view_nocontent_smiling_face">
-                No hay inscripciones para mostrar.
-            </p>
-        </field>
-    </record>
-    
 </odoo>

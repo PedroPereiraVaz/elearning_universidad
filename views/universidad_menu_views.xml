@@ -210,12 +210,66 @@ action = {
     </record>
 
     <!-- Certificaciones -->
-    <record id="action_universidad_certificaciones" model="ir.actions.act_window">
+    <!-- VISTAS READONLY PARA CERTIFICACIONES (Anti-Docente) -->
+    <record id="view_survey_kanban_certification_readonly" model="ir.ui.view">
+        <field name="name">survey.survey.kanban.certification.readonly</field>
+        <field name="model">survey.survey</field>
+        <field name="inherit_id" ref="survey.survey_survey_view_kanban"/>
+        <field name="mode">primary</field>
+        <field name="arch" type="xml">
+            <xpath expr="//kanban" position="attributes">
+                 <attribute name="create">false</attribute>
+            </xpath>
+        </field>
+    </record>
+    
+    <record id="view_survey_tree_certification_readonly" model="ir.ui.view">
+        <field name="name">survey.survey.tree.certification.readonly</field>
+        <field name="model">survey.survey</field>
+        <field name="inherit_id" ref="survey.survey_survey_view_tree"/>
+        <field name="mode">primary</field>
+        <field name="arch" type="xml">
+            <xpath expr="//list" position="attributes">
+                 <attribute name="create">false</attribute>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Certificaciones (DISPATCHER) -->
+    <record id="action_server_dispatch_certificaciones" model="ir.actions.server">
         <field name="name">Certificaciones</field>
-        <field name="res_model">slide.slide</field>
-        <field name="view_mode">kanban,list,form</field>
-        <field name="domain">[('slide_category', '=', 'certification')]</field>
-        <field name="context">{'default_slide_category': 'certification', 'default_slide_type': 'certification'}</field>
+        <field name="model_id" ref="survey.model_survey_survey"/>
+        <field name="state">code</field>
+        <field name="code">
+user = env.user
+can_create = user.has_group('elearning_universidad.grupo_director_academico') or user.has_group('elearning_universidad.grupo_administrador_universidad')
+
+if can_create:
+    views = [
+        (env.ref('survey.survey_survey_view_kanban').id, 'kanban'),
+        (env.ref('survey.survey_survey_view_tree').id, 'list'),
+        (env.ref('survey.survey_survey_view_form').id, 'form')
+    ]
+    ctx = {'default_certification': True, 'default_scoring_type': 'scoring_with_answers'}
+else:
+    views = [
+        (env.ref('elearning_universidad.view_survey_kanban_certification_readonly').id, 'kanban'),
+        (env.ref('elearning_universidad.view_survey_tree_certification_readonly').id, 'list'),
+        (env.ref('survey.survey_survey_view_form').id, 'form') 
+    ]
+    # Forzar modo readonly globalmente para esta acción (oculta botón Nuevo en Form)
+    ctx = {'default_certification': True, 'default_scoring_type': 'scoring_with_answers', 'create': False}
+
+action = {
+    'name': 'Certificaciones',
+    'type': 'ir.actions.act_window',
+    'res_model': 'survey.survey',
+    'view_mode': 'kanban,list,form',
+    'views': views,
+    'domain': [('certification', '=', True)], 
+    'context': ctx,
+}
+        </field>
     </record>
 
     <!-- Exámenes -->
@@ -227,7 +281,8 @@ action = {
             (0, 0, {'view_mode': 'kanban', 'view_id': ref('survey.survey_survey_view_kanban')}),
             (0, 0, {'view_mode': 'list', 'view_id': ref('survey.survey_survey_view_tree')}),
             (0, 0, {'view_mode': 'form', 'view_id': ref('elearning_universidad.view_survey_form_exam_university')})]"/>
-        <field name="domain">[('is_exam', '=', True)]</field>
+        <!-- Dominio de Visibilidad: Examen + (Admin OR Creador OR Responsable OR Director de Curso vinculado) -->
+        <field name="domain">['&amp;', ('is_exam', '=', True), '|', ('is_university_admin', '=', True), '|', '|', '|', ('create_uid', '=', uid), ('user_id', '=', uid), ('slide_ids.user_id', '=', uid), ('slide_ids.channel_id.director_academico_ids', 'in', [uid])]</field>
         <field name="context">{'default_is_exam': True, 'default_certification': False, 'default_scoring_type': 'scoring_with_answers', 'default_access_mode': 'token', 'default_users_login_required': True, 'default_is_attempts_limited': True, 'default_is_time_limited': True}</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">
@@ -308,7 +363,7 @@ action = {
         <menuitem id="menu_universidad_certificaciones_item"
                   name="Certificaciones"
                   parent="menu_universidad_certificaciones_root"
-                  action="action_universidad_certificaciones"
+                  action="action_server_dispatch_certificaciones"
                   sequence="1"/>
         <menuitem id="menu_universidad_titulos"
                   name="Títulos"
@@ -324,7 +379,7 @@ action = {
         <menuitem id="menu_universidad_boletin"
                   name="Boletín de Notas"
                   parent="menu_universidad_evaluacion_root"
-                  action="elearning_universidad.action_universidad_boletin"
+                  action="elearning_universidad.action_gradebook_course_selection"
                   sequence="1"/>
         <menuitem id="menu_universidad_pendientes"
                   name="Pendientes de Evaluar"

@@ -34,21 +34,21 @@
                                 </div>
                             </div>
 
-                            <!-- Caso: Entregado esperando revisión -->
-                            <div t-elif="user_eval and user_eval.estado_evaluacion == 'pendiente_revision'" class="alert alert-warning border shadow-sm p-4">
+                            <!-- Caso: Entregado esperando revisión (Solo si hay archivo subido) -->
+                            <div t-if="user_eval and user_eval.archivo_entrega and user_eval.estado_evaluacion == 'pendiente_revision'" class="alert alert-warning border shadow-sm p-4">
                                 <div class="d-flex align-items-center">
-                                    <div class="spinner-border text-warning me-3" role="status">
-                                        <span class="visually-hidden">Cargando...</span>
+                                    <div class="text-warning me-3">
+                                        <i class="fa fa-clock-o fa-3x"/>
                                     </div>
                                     <div>
                                         <h5 class="mb-1 fw-bold">Esperando Revisión del Docente</h5>
-                                        <p class="mb-0">Tu archivo <strong><t t-esc="user_eval.nombre_archivo"/></strong> ha sido recibido correctamente. Se te notificará cuando haya sido evaluado.</p>
+                                        <p class="mb-0">Tu archivo <strong><t t-esc="user_eval.nombre_archivo"/></strong> ha sido recibido correctamente. Puedes subir una nueva versión abajo si lo necesitas.</p>
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- Caso: Formulario de Entrega -->
-                            <div t-if="not user_eval or user_eval.estado_evaluacion == 'pendiente_presentar'">
+                            <!-- Caso: Formulario de Entrega (Siempre visible si no está evaluado) -->
+                            <div t-if="not user_eval or user_eval.estado_evaluacion != 'evaluado'">
                                 <div class="mb-4">
                                     <h5 class="fw-bold"><i class="fa fa-file-pdf-o me-2 text-danger"/>Sube tu entrega</h5>
                                     <p class="text-muted small">Carga tu documento o archivo comprimido según las instrucciones del docente. Se permite un archivo de hasta <t t-esc="slide.channel_id.upload_limit_mb"/>MB.</p>
@@ -155,13 +155,13 @@
                         </div>
 
                         <!-- Caso: Pendiente Revisión -->
-                         <div t-elif="user_eval and user_eval.estado_evaluacion == 'pendiente_revision'" class="alert alert-warning">
+                         <div t-if="user_eval and user_eval.archivo_entrega and user_eval.estado_evaluacion == 'pendiente_revision'" class="alert alert-warning">
                             <i class="fa fa-clock-o me-2"/> Esperando Revisión
                             <br/><small>Archivo: <span t-field="user_eval.nombre_archivo"/></small>
                         </div>
 
-                         <!-- Caso: Formulario -->
-                        <div t-if="not user_eval or user_eval.estado_evaluacion == 'pendiente_presentar'">
+                         <!-- Caso: Formulario (Siempre visible si no está evaluado) -->
+                        <div t-if="not user_eval or user_eval.estado_evaluacion != 'evaluado'">
                              <form action="/slides/slide/upload_delivery" method="post" enctype="multipart/form-data">
                                 <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
                                 <input type="hidden" name="slide_id" t-att-value="slide.id"/>

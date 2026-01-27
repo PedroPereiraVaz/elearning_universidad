@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- 1. Enlace en el Home del Portal (Alineado con Seguridad/Común para equilibrar Grid) -->
+    <template id="portal_my_home_menu_grade" name="Portal: My Grades Link" inherit_id="portal.portal_my_home" priority="20">
+        <!-- Insertamos DENTRO de la categoría COMÚN (Segunda Fila, junto a Seguridad) -->
+        <xpath expr="//div[@id='portal_common_category']" position="inside">
+            <t t-call="portal.portal_docs_entry">
+                <t t-set="title">Sus calificaciones</t>
+                <t t-set="url" t-value="'/my/grades'"/>
+                <t t-set="placeholder_count" t-value="'grades_count'"/>
+                <t t-set="icon" t-value="'/elearning_universidad/static/src/img/grades.svg'"/>
+                <t t-set="text">Ver sus calificaciones</t>
+            </t>
+        </xpath>
+    </template>
+
+    <!-- 2. Breadcrumbs -->
+    <template id="portal_my_home_grades_breadcrumb" name="Portal: My Grades Breadcrumb" inherit_id="portal.portal_breadcrumbs" priority="20">
+        <xpath expr="//ol[hasclass('o_portal_submenu')]" position="inside">
+            <li t-if="page_name == 'grades'" class="breadcrumb-item active">
+                Mis Calificaciones
+            </li>
+        </xpath>
+    </template>
+
+    <!-- 3. Página Principal de Calificaciones -->
+    <template id="portal_my_grades" name="Mis Calificaciones">
+        <t t-call="portal.portal_layout">
+            <t t-set="breadcrumbs_searchbar" t-value="True"/>
+
+            <t t-call="portal.portal_searchbar">
+                <t t-set="title">Mis Calificaciones</t>
+            </t>
+            
+            <t t-if="not courses">
+                <div class="alert alert-info text-center">
+                    <i class="fa fa-info-circle me-2"/> No tienes cursos con calificaciones registradas aún.
+                </div>
+            </t>
+            
+            <div t-if="courses" class="d-flex flex-column gap-4">
+                <t t-foreach="courses" t-as="enrollment">
+                    <div class="card shadow-sm border-0">
+                        <!-- Cabecera del Curso (Clickable para Colapsar) -->
+                        <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center cursor-pointer" 
+                             data-bs-toggle="collapse" 
+                             t-att-data-bs-target="'#course_collapse_' + str(enrollment.id)" 
+                             aria-expanded="false"
+                             style="cursor: pointer;">
+                            
+                            <div class="d-flex align-items-center gap-3">
+                                <!-- Icono Toggle -->
+                                <i class="fa fa-chevron-right text-muted transition-transform" style="font-size: 0.8rem;"/>
+                                
+                                <div class="bg-primary bg-opacity-10 p-3 rounded-circle text-primary">
+                                    <i class="fa fa-graduation-cap fa-lg" t-if="enrollment.channel_id.tipo_curso == 'master'"/>
+                                    <i class="fa fa-book fa-lg" t-else=""/>
+                                </div>
+                                <div>
+                                    <h5 class="mb-0 fw-bold text-dark" t-field="enrollment.channel_id.name"/>
+                                    <span class="badge bg-light text-primary border" t-field="enrollment.channel_id.tipo_curso"/>
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <t t-if="enrollment.estado_nota in ['evaluado', 'certificado']">
+                                    <div class="d-flex flex-column align-items-end">
+                                        <span class="small text-muted text-uppercase fw-bold" style="font-size: 0.75rem;">Nota Final</span>
+                                        <span class="badge bg-primary fs-5" t-field="enrollment.nota_final"/>
+                                    </div>
+                                </t>
+                                <t t-else="">
+                                    <span class="badge bg-warning text-dark">En Progreso</span>
+                                </t>
+                            </div>
+                        </div>
+
+                        <!-- Cuerpo Colapsable -->
+                        <div t-att-id="'course_collapse_' + str(enrollment.id)" class="collapse">
+                            <div class="card-body p-0 border-top">
+                                <!-- MASTER: Desglose de Asignaturas -->
+                                <t t-if="enrollment.channel_id.tipo_curso == 'master'">
+                                    <div class="accordion accordion-flush" t-att-id="'accordion_' + str(enrollment.id)">
+                                        <t t-foreach="enrollment.asignatura_partner_ids" t-as="asig">
+                                            <div class="accordion-item">
+                                                <h2 class="accordion-header">
+                                                    <button class="accordion-button collapsed bg-white" type="button" data-bs-toggle="collapse" t-att-data-bs-target="'#collapse_' + str(asig.id)">
+                                                        <div class="d-flex w-100 justify-content-between me-3 align-items-center">
+                                                            <span class="fw-bold" t-field="asig.channel_id.name"/>
+                                                            <t t-if="asig.estado_nota in ['evaluado', 'certificado']">
+                                                                <span class="badge bg-success" t-field="asig.nota_final"/>
+                                                            </t>
+                                                            <t t-else="">
+                                                                <span class="badge bg-light text-muted border">En Curso</span>
+                                                            </t>
+                                                        </div>
+                                                    </button>
+                                                </h2>
+                                                <div t-att-id="'collapse_' + str(asig.id)" class="accordion-collapse collapse" t-att-data-bs-parent="'#accordion_' + str(enrollment.id)">
+                                                    <div class="accordion-body bg-light bg-opacity-25">
+                                                        <!-- Tabla de Contenidos -->
+                                                        <t t-call="elearning_universidad.portal_grades_content_table">
+                                                            <t t-set="contents" t-value="asig.evaluaciones_ids.filtered(lambda c: c.estado_evaluacion == 'evaluado')"/>
+                                                        </t>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </t>
+                                    </div>
+                                </t>
+
+                                <!-- OTROS (Microcredencial/Asignatura suelta): Utilizando el MISMO estilo de acordeón para consistencia visual -->
+                                <t t-else="">
+                                     <!-- Creamos un 'falso' acordeón único para que se vea igual que una asignatura de Master -->
+                                     <div class="accordion accordion-flush">
+                                         <div class="accordion-item">
+                                             <h2 class="accordion-header">
+                                                 <button class="accordion-button bg-light text-primary fw-bold shadow-none" type="button" data-bs-toggle="collapse" t-att-data-bs-target="'#collapse_inner_' + str(enrollment.id)" aria-expanded="true">
+                                                     <i class="fa fa-list-ul me-2"/> Detalle de Calificaciones
+                                                 </button>
+                                             </h2>
+                                             <div t-att-id="'collapse_inner_' + str(enrollment.id)" class="accordion-collapse collapse show">
+                                                 <div class="accordion-body p-0">
+                                                     <div class="p-3">
+                                                        <t t-call="elearning_universidad.portal_grades_content_table">
+                                                            <t t-set="contents" t-value="enrollment.evaluaciones_ids.filtered(lambda c: c.estado_evaluacion == 'evaluado')"/>
+                                                        </t>
+                                                     </div>
+                                                 </div>
+                                             </div>
+                                         </div>
+                                     </div>
+                                </t>
+                            </div>
+                        </div>
+                    </div>
+                </t>
+                
+                <!-- Script simple para rotar la flecha (Odoo suele tener CSS para esto en .accordion, pero aquí es custom card) -->
+                <script>
+                    document.addEventListener("DOMContentLoaded", function() {
+                        var collapses = document.querySelectorAll('[data-bs-toggle="collapse"]');
+                        collapses.forEach(function(el) {
+                            el.addEventListener('click', function() {
+                                var icon = el.querySelector('.fa-chevron-right');
+                                if (icon) {
+                                    if (el.getAttribute('aria-expanded') === 'true') {
+                                        icon.style.transform = 'rotate(90deg)';
+                                    } else {
+                                        icon.style.transform = 'rotate(0deg)';
+                                    }
+                                }
+                            });
+                        });
+                    });
+                </script>
+            </div>
+        </t>
+    </template>
+
+    <!-- Sub-plantilla para Tabla de Contenidos (DRY) -->
+    <template id="portal_grades_content_table">
+        <t t-if="contents">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0 bg-white shadow-sm rounded">
+                    <thead class="bg-light">
+                        <tr>
+                            <th class="ps-3 py-3 text-muted text-uppercase small w-50">Actividad</th>
+                            <th class="py-3 text-muted text-uppercase small text-center">Tipo</th>
+                            <th class="py-3 text-muted text-uppercase small text-center">Estado</th> 
+                            <th class="pe-3 py-3 text-muted text-uppercase small text-end">Calificación</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr t-foreach="contents" t-as="content">
+                            <td class="ps-3 fw-bold text-dark">
+                                <span t-field="content.slide_id.name"/>
+                            </td>
+                            <td class="text-center">
+                                <span t-if="content.slide_category == 'exam'" class="badge rounded-pill text-bg-info">Examen</span>
+                                <span t-elif="content.slide_category == 'delivery'" class="badge rounded-pill text-bg-primary">Entregable</span>
+                                <span t-elif="content.slide_category == 'certification'" class="badge rounded-pill text-bg-warning">Certificación</span>
+                                <span t-else="" class="badge rounded-pill text-bg-secondary"><t t-esc="content.slide_category"/></span>
+                            </td>
+                             <td class="text-center">
+                                <t t-if="not content.es_evaluable">
+                                    <span class="badge bg-light text-muted border border-secondary" title="No computa para la nota final">No Evaluable</span>
+                                </t>
+                                <t t-else="">
+                                     <i class="fa fa-check text-success" title="Cuenta para nota"/>
+                                </t>
+                            </td>
+                            <td class="pe-3 text-end">
+                                <span class="fs-5 fw-bold" t-field="content.nota_evaluacion"/>
+                                <span class="text-muted small">/ 10</span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </t>
+        <t t-else="">
+            <div class="text-center text-muted py-3">
+                <small>No hay actividades evaluadas aún.</small>
+            </div>
+        </t>
+    </template>
+</odoo>

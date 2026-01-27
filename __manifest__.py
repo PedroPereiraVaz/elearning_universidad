@@ -16,6 +16,7 @@
     'data': [
         'security/security.xml',
         'security/ir.model.access.csv',
+        'security/ir_rule.xml',
         'data/ir_cron.xml',
         'wizard/slide_channel_reject_views.xml',
         'wizard/slide_channel_schedule_views.xml',
@@ -25,6 +26,7 @@
         'views/survey_survey_views.xml',
         'views/universidad_menu_views.xml',
         'views/website_slides_templates.xml',
+        'views/portal_templates.xml',
     ],
     'installable': True,
     'application': True,

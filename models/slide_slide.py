@@ -23,6 +23,12 @@ class Slide(models.Model):
         readonly=True,
         store=True
     )
+    
+    asignatura_duracion = fields.Float(
+        related='asignatura_id.duracion_horas',
+        string="Duración Asignatura",
+        readonly=True
+    )
 
     fecha_programada = fields.Datetime(
         string='Publicación Programada', 
@@ -51,6 +57,39 @@ class Slide(models.Model):
     # --- UI Helpers ---
     #campo relacionado para separar la vista de Exámenes con su propio contexto
     exam_id = fields.Many2one('survey.survey', related='survey_id', readonly=False, string="Examen")
+
+    # --- Integridad de Responsables ---
+    allowed_user_ids = fields.Many2many(
+        'res.users', 
+        compute='_compute_allowed_users', 
+        string="Responsables Permitidos"
+    )
+
+    @api.depends('channel_id.director_academico_ids', 'channel_id.personal_docente_ids')
+    def _compute_allowed_users(self):
+        for record in self:
+            if record.channel_id:
+                record.allowed_user_ids = record.channel_id.director_academico_ids | record.channel_id.personal_docente_ids
+            else:
+                record.allowed_user_ids = self.env['res.users']
+
+    @api.constrains('user_id', 'channel_id')
+    def _check_responsible_is_staff(self):
+        for record in self:
+            # Si hay un responsable y un curso asignado
+            # Excepción: Si es superusuario/root (instalación), saltar check. 
+            # (Aunque 'user_id' es el campo de valor).
+            if record.user_id and record.channel_id:
+                valid_staff = record.channel_id.director_academico_ids | record.channel_id.personal_docente_ids
+                if valid_staff and record.user_id not in valid_staff:
+                    # Solo validamos si el curso TIENE staff definido. Si está vacío, quizás es pre-configuración.
+                    # Pero el requerimiento es estricto: "nadie mas que no este en el curso".
+                    # Si no hay staff, nadie debería ser responsable salvo el admin quizas.
+                    # Asumimos que valid_staff es la autoridad.
+                    raise ValidationError(_(
+                        "Error de Integridad: El responsable '%s' no pertenece al Personal Docente ni a Dirección del curso."
+                        "\nDebe añadirlo previamente a la configuración del curso."
+                    ) % record.user_id.name)
 
     @api.model
     def get_view(self, view_id=None, view_type='form', **options):
@@ -119,14 +158,11 @@ class Slide(models.Model):
                 slide.slide_icon_class = 'fa-pencil-square-o'
         super(Slide, self.filtered(lambda s: s.slide_type != 'exam'))._compute_slide_icon_class()
 
-    @api.onchange('slide_category')
-    def _onchange_slide_category_evaluable(self):
-        """ Logica estricta: Unicamente los tipos especificos que pueden ser evaluables """
-        ALLOWED_EVALUABLE_TYPES = ['certification', 'delivery', 'sub_course', 'exam']
-        if self.slide_category in ALLOWED_EVALUABLE_TYPES:
-            self.es_evaluable = True
-        else:
-            self.es_evaluable = False
+    
+    # [REMOVED] _onchange_slide_category_evaluable 
+    # Eliminado para evitar conflictos de UI donde el campo se reseteaba a False.
+    # El usuario debe marcar manualmente si es evaluable o confiar en el default de create().
+
 
     def action_publicar_contenido(self):
         """ Publica inmediatamente el contenido """
@@ -214,10 +250,10 @@ class Slide(models.Model):
                 asignatura = self.env['slide.channel'].browse(vals['asignatura_id'])
                 vals['name'] = asignatura.name
             
-            # Corrección: Forzar 'es_evaluable' para Asignaturas creadas desde el Master (Wizard)
-            # Como la sincronización inversa usa 'avoid_slide_sync', el Channel no nos devuelve el update.
-            if vals.get('slide_category') == 'sub_course':
-                vals['es_evaluable'] = True
+            # Corrección: Forzar 'es_evaluable' para Asignaturas, Exámenes y Entregables en creación
+            if vals.get('slide_category') in ['sub_course', 'delivery', 'exam', 'certification']:
+                if 'es_evaluable' not in vals:
+                    vals['es_evaluable'] = True
         
         slides = super().create(vals_list)
         slides._asegurar_registros_seguimiento()
@@ -226,6 +262,11 @@ class Slide(models.Model):
         return slides
 
     def write(self, vals):
+            
+            
+        # [REVERTED] Enforcement removed to allow user to uncheck 'es_evaluable'.
+        # User wants to track deliveries/exams even if they don't count for the grade.
+
         res = super().write(vals)
         if 'es_evaluable' in vals and vals.get('es_evaluable'):
             self._asegurar_registros_seguimiento()

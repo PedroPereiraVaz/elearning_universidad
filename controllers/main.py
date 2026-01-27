@@ -1,4 +1,4 @@
-from odoo import http, _
+from odoo import http, fields, _
 from odoo.http import request
 from odoo.addons.website_slides.controllers.main import WebsiteSlides
 import base64
@@ -44,13 +44,16 @@ class UniversityWebsiteSlides(WebsiteSlides):
         return response
 
     def _slide_channel_all_values(self, slide_category=None, slug_tags=None, my=False, **post):
-        """ Sobrescribimos la obtención de datos para búsquedas JSON/AJAX """
-        # Nota: En Odoo 16+, el método puede ser diferente. Verificamos la firma estándar.
-        # En WebsiteSlides es _slide_channel_all_values o similar?
-        # Revisando el código fuente de Odoo 18 (o reciente), suele ser slides_channel_all o prepare_values.
-        # Asumiremos filtrado en el controller route principal que ya cubrimos arriba para HTML.
-        # Si hay endpoint JSON, habría que interceptarlo, pero típicamente es /slides/all
-        return super()._slide_channel_all_values(slide_category, slug_tags, my, **post)
+        """ Sobrescribimos la obtención de datos para búsquedas JSON/AJAX y /slides/all """
+        values = super()._slide_channel_all_values(slide_category, slug_tags, my, **post)
+        
+        # FILTRO CENTRALIZADO: Ocultar asignaturas y no publicados
+        if values.get('channels'):
+            values['channels'] = values['channels'].filtered(
+                lambda c: c.tipo_curso != 'asignatura' and c.estado_universidad == 'publicado'
+            )
+            
+        return values
         
     @http.route([
         '/slides/<model("slide.channel"):channel>',
@@ -116,7 +119,7 @@ class UniversitySlideController(http.Controller):
                 'slide_id': slide.id,
                 'partner_id': request.env.user.partner_id.id,
                 'channel_id': slide.channel_id.id,
-                'estado_evaluacion': 'pendiente_presentar'
+                'estado_evaluacion': 'pendiente_revision'
             })
 
         # No permitir resubir si ya está evaluado y confirmado (seguridad extra)
@@ -128,7 +131,7 @@ class UniversitySlideController(http.Controller):
             'archivo_entrega': base64.b64encode(file_content) if file_content else False,
             'nombre_archivo': file.filename,
             'estado_evaluacion': 'pendiente_revision',
-            'fecha_entrega': http.fields.Datetime.now()
+            'fecha_entrega': fields.Datetime.now()
         })
 
         # 6. Marcar como completado automáticamente

@@ -98,42 +98,46 @@
                  <field name="can_manage_config" invisible="1"/>
                  <field name="can_see_financials" invisible="1"/>
                  <field name="can_manage_members" invisible="1"/>
+                 <field name="is_university_admin" invisible="1"/>
+                 <field name="is_exclusive_teacher" invisible="1"/>
             </xpath>
             <xpath expr="//header" position="inside">
-                <!-- Botones para Docentes/Directores -->
+                <!-- Botones para Docentes/Directores (Ocultos para Admins) -->
                 <button name="action_presentar" string="Presentar para Revisión" type="object" 
                         class="btn-primary" 
-                        invisible="estado_universidad != 'borrador' or tipo_curso == 'asignatura'"/>
+                        groups="elearning_universidad.grupo_director_academico"
+                        invisible="is_university_admin or (estado_universidad != 'borrador' or tipo_curso == 'asignatura') or context.get('hide_workflow_buttons')"/>
                 
                 <button name="action_subsanar" string="Subsanar y Presentar" type="object" 
                         class="btn-primary"
-                        invisible="estado_universidad != 'rechazado'"/>
+                        groups="elearning_universidad.grupo_director_academico"
+                        invisible="is_university_admin or (estado_universidad != 'rechazado') or context.get('hide_workflow_buttons')"/>
                 
                 <!-- Botones exclusivos del Administrador -->
                 <button name="%(elearning_universidad.action_slide_channel_reject_wizard)d" string="Rechazar" type="action" 
                         class="btn-secondary" 
                         groups="elearning_universidad.grupo_administrador_universidad"
-                        invisible="estado_universidad not in ['presentado', 'subsanacion']"
+                        invisible="estado_universidad not in ['presentado', 'subsanacion'] or context.get('hide_workflow_buttons')"
                         context="{'default_channel_id': id}"/>
                 
                 <button name="%(elearning_universidad.action_slide_channel_schedule_wizard)d" string="Programar Publicación" type="action" 
                         class="btn-info" 
                         groups="elearning_universidad.grupo_administrador_universidad"
-                        invisible="estado_universidad not in ['presentado', 'subsanacion'] and not (tipo_curso == 'asignatura' and estado_universidad == 'borrador')"
+                        invisible="(estado_universidad not in ['presentado', 'subsanacion'] and not (tipo_curso == 'asignatura' and estado_universidad == 'borrador')) or context.get('hide_workflow_buttons')"
                         context="{'default_channel_id': id}"/>
 
                 <button name="action_publicar" string="Publicar Ahora" type="object" 
                         class="btn-success"
                         groups="elearning_universidad.grupo_administrador_universidad,elearning_universidad.grupo_director_academico"
-                        invisible="not can_manage_config or (estado_universidad not in ['presentado', 'subsanacion', 'programado'] and not (tipo_curso == 'asignatura' and estado_universidad == 'borrador'))"/>
+                        invisible="not can_manage_config or (estado_universidad not in ['presentado', 'subsanacion', 'programado'] and not (tipo_curso == 'asignatura' and estado_universidad == 'borrador')) or context.get('hide_workflow_buttons')"/>
                 
                 <button name="action_finalizar" string="Finalizar Curso" type="object" 
                         class="btn-danger"
                         groups="elearning_universidad.grupo_administrador_universidad"
                         confirm="¿Está seguro de que desea finalizar y archivar este curso? Esta acción es irreversible desde el portal."
-                        invisible="estado_universidad != 'publicado'"/>
+                        invisible="estado_universidad != 'publicado' or tipo_curso == 'asignatura' or context.get('hide_workflow_buttons')"/>
                 
-                <field name="estado_universidad" widget="statusbar" statusbar_visible="borrador,presentado,publicado,finalizado"/>
+                <field name="estado_universidad" widget="statusbar" statusbar_visible="borrador,presentado,publicado,finalizado" invisible="context.get('hide_workflow_buttons')"/>
             </xpath>
 
             <!-- INTEGRAMOS CONFIGURACIÓN DENTRO DE LA PESTAÑA OPCIONES (Options) -->
@@ -143,33 +147,38 @@
                 <field name="tipo_curso" invisible="1"/>
             </xpath>
             
+            <xpath expr="//notebook/page[@name='options']" position="attributes">
+                <attribute name="invisible">is_exclusive_teacher and tipo_curso in ['master', 'microcredencial']</attribute>
+            </xpath>
+
             <xpath expr="//notebook/page[@name='options']" position="inside">
                  <group string="Gestión Académica Universitaria">
                      <group>
                          <field name="tipo_curso" readonly="1" force_save="1"/>
                          <field name="director_academico_ids" widget="many2many_tags" 
-                                readonly="not can_manage_config" 
+                                readonly="not is_university_admin" 
                                 required="tipo_curso in ['master', 'microcredencial']"
                                 invisible="tipo_curso == 'asignatura'"/>
                          <field name="personal_docente_ids" widget="many2many_tags" 
                                 invisible="tipo_curso == 'master'"
+                                readonly="not can_manage_members"
                                 required="tipo_curso in ['asignatura', 'microcredencial']"/>
                          <field name="upload_limit_mb" readonly="not can_manage_config"/>
                      </group>
                      <group>
                          <field name="master_id" 
-                                invisible="tipo_curso != 'asignatura' or context.get('locked_master_context')" 
+                                invisible="tipo_curso != 'asignatura' or context.get('locked_master_context') or is_exclusive_teacher" 
                                 required="tipo_curso == 'asignatura' and not context.get('locked_master_context')"
                                 readonly="not can_manage_config"/>
                      </group>
                  </group>
-                 <group string="Certificación y Revisión" invisible="tipo_curso == 'asignatura'">
+                 <group string="Certificación" invisible="tipo_curso == 'asignatura' or (not is_university_admin and not tiene_titulo)">
                       <group>
-                          <field name="tiene_titulo" readonly="not can_manage_config"/>
-                          <field name="plantilla_titulo" invisible="not tiene_titulo" required="tiene_titulo" readonly="not can_manage_config"/>
+                          <field name="tiene_titulo" readonly="not is_university_admin" force_save="1"/>
+                          <field name="plantilla_titulo" invisible="not tiene_titulo" required="tiene_titulo" readonly="not is_university_admin"/>
                       </group>
                       <group>
-                          <field name="fecha_programada_publicacion" readonly="1"/>
+                          <field name="fecha_programada_publicacion" invisible="1"/>
                           <field name="motivo_rechazo" invisible="1"/>
                       </group>
                  </group>
@@ -178,14 +187,17 @@
             <!-- MOVER PRECIO DEBAJO DE PRODUCTO EN POLÍTICA DE INSCRIPCIÓN -->
             <xpath expr="//field[@name='enroll']" position="after">
                  <!-- Inyectamos precio justo en el bloque de enrollment policy -->
-                 <!-- field name="product_id" ya existe en la vista base, lo buscamos o inyectamos despues -->
+                 <!-- Ocultamos product_id por solicitud, se gestiona automáticamente -->
+            </xpath>
+            <xpath expr="//field[@name='product_id']" position="attributes">
+                 <attribute name="invisible">1</attribute>
             </xpath>
             <xpath expr="//field[@name='product_id']" position="after">
                  <field name="precio_curso" 
                         readonly="not can_manage_config"
                         invisible="enroll != 'payment'"/>
             </xpath>
-
+            
             <!-- AJUSTES VISUALES GENERALES Y BLOQUEOS -->
             <!-- Personalización de Botones de Agregado de Contenido -->
             <!-- Barra de Control de Contenidos -->
@@ -216,9 +228,9 @@
                 <attribute name="invisible">not can_see_financials or tipo_curso == 'asignatura'</attribute>
             </xpath>
             <!-- Grupo de Visualización (Channel Type + Promote Strategy) -->
-            <!-- Nota: channel_type suele estar en un grupo 'Display'. Al ocultar el grupo, se va promote_strategy. -->
+            <!-- "Mostrar pantalla" oculto en general -->
             <xpath expr="//field[@name='channel_type']/.." position="attributes">
-                <attribute name="invisible">tipo_curso == 'asignatura'</attribute>
+                <attribute name="invisible">1</attribute>
             </xpath>
 
             <!-- Refuerzo individual por si acaso están fuera de grupo -->
@@ -251,7 +263,7 @@
                         <field name="sequence" widget="handle"/>
                         <field name="name"/>
                         <field name="slide_category" invisible="slide_category == 'category'"/>
-                        <field name="es_evaluable" optional="show" readonly="1"/>
+                        <field name="es_evaluable" optional="show" force_save="1"/>
                         <field name="is_preview" string="Preview"/>
                         <field name="is_published" string="Published"/>
                         <field name="is_category" column_invisible="True"/>
@@ -271,7 +283,7 @@
 
             <!-- Inyección de columna es_evaluable -->
             <xpath expr="//field[@name='slide_ids']/list/field[@name='slide_category']" position="after">
-                <field name="es_evaluable" optional="show" readonly="1"/>
+                <field name="es_evaluable" optional="show" force_save="1"/>
             </xpath> 
 
             <!-- OCULTAR BOTONES NATIVOS INNECESARIOS -->
@@ -281,7 +293,7 @@
 
             <!-- GESTIÓN DE BOTONES DE INVITACIÓN (Solo Master/Micro) -->
             <xpath expr="//button[@name='action_channel_invite']" position="attributes">
-                 <attribute name="invisible">tipo_curso == 'asignatura'</attribute>
+                 <attribute name="invisible">tipo_curso == 'asignatura' or enroll == 'payment'</attribute>
             </xpath>
 
             <!-- BOTONES DE FLUJO DE PUBLICACIÓN EN CABECERA -->
@@ -290,14 +302,12 @@
                          string="Confirmar Programación" 
                          type="object" 
                          class="btn-primary"
-                         invisible="not fecha_programada_publicacion or estado_universidad in ['programado', 'publicado', 'finalizado']"/>
+                         invisible="not fecha_programada_publicacion or estado_universidad in ['programado', 'publicado', 'finalizado'] or context.get('hide_workflow_buttons')"/>
             </xpath>
             
             <!-- CAMPO FECHA PROGRAMADA EN FORMULARIO (Si no existe, lo inyectamos) -->
              <xpath expr="//field[@name='channel_type']" position="after">
-                 <field name="fecha_programada_publicacion" 
-                        invisible="estado_universidad in ['publicado', 'finalizado']" 
-                        readonly="estado_universidad in ['programado']"/>
+                 <field name="fecha_programada_publicacion" invisible="1"/>
              </xpath>
 
 
@@ -306,4 +316,12 @@
             
         </field>
     </record>
+
+
+    <!-- ACCESO A MENÚS PARA GRUPOS PERSONALIZADOS -->
+    <!-- Permitimos que Docentes y Directores vean el menú raíz de eLearning sin ser 'Encargados' -->
+    <record id="website_slides.website_slides_menu_root" model="ir.ui.menu">
+        <field name="groups_id" eval="[(4, ref('elearning_universidad.grupo_personal_docente')), (4, ref('elearning_universidad.grupo_director_academico'))]"/>
+    </record>
+
 </odoo>
