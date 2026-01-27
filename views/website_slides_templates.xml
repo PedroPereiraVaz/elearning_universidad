@@ -179,4 +179,19 @@
             </div>
         </xpath>
     </template>
+    <!-- 7. [NUEVO] Soporte para Exámenes (Tratarlos como Certificaciones en Frontend) -->
+    <template id="slide_content_detailed_exam" inherit_id="website_slides_survey.slide_content_detailed">
+        <!-- Modificamos la condicional para incluir 'exam' dondequiera que haya 'certification' -->
+         <xpath expr="//div[@t-if='slide.slide_category == &quot;certification&quot;']" position="attributes">
+            <attribute name="t-if">slide.slide_category in ['certification', 'exam']</attribute>
+        </xpath>
+        <!-- Actualizar textos específicos si es necesario, pero dejar la funcionalidad base -->
+    </template>
+
+    <!-- 8. [NUEVO] Botón en Fullscreen para Exámenes -->
+    <template id="slide_fullscreen_sidebar_category_exam" inherit_id="website_slides_survey.slide_fullscreen_sidebar_category">
+        <xpath expr="//div[@t-if='slide.slide_category == &quot;certification&quot;']" position="attributes">
+            <attribute name="t-if">slide.slide_category in ['certification', 'exam']</attribute>
+        </xpath>
+    </template>
 </odoo>

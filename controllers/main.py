@@ -1,9 +1,12 @@
 from odoo import http, fields, _
 from odoo.http import request
 from odoo.addons.website_slides.controllers.main import WebsiteSlides
+# Importamos el controlador nativo de Certificaciones para extenderlo
+from odoo.addons.website_slides_survey.controllers.slides import WebsiteSlidesSurvey
+
 import base64
 
-class UniversityWebsiteSlides(WebsiteSlides):
+class UniversityWebsiteSlides(WebsiteSlides, WebsiteSlidesSurvey):
     
     def _get_university_domain(self):
         """ Filtro base para ocultar Asignaturas y Cursos no publicados por la Universidad """
@@ -81,6 +84,30 @@ class UniversityWebsiteSlides(WebsiteSlides):
             response.qcontext['parent_master'] = channel.master_id
             
         return response
+
+    @http.route('/slides_survey/slide/get_certification_url', type='http', auth='user', website=True)
+    def slide_get_certification_url(self, slide_id, **kw):
+        """ 
+        Sobrescribimos la ruta nativa para soportar slide_category='exam'.
+        La nativa restringe solo a 'certification'.
+        """
+        fetch_res = self._fetch_slide(slide_id)
+        if fetch_res.get('error'):
+            return fetch_res.get('error')
+            
+        slide = fetch_res['slide']
+        
+        # Si es un EXAMEN, lo tratamos idéntico a una Certificación (redirigir al Survey)
+        if slide.slide_category == 'exam' and slide.survey_id:
+            # Copiamos la lógica nativa de redirección al survey
+            if not slide.channel_id.is_member:
+                slide.channel_id._action_add_members(request.env.user.partner_id)
+            
+            # Generar URL de la encuesta
+            survey_url = slide.survey_id.action_start_survey(answer=None, upstream_params={'slide_id': slide.id})['url']
+            return request.redirect(survey_url)
+            
+        return super().slide_get_certification_url(slide_id, **kw)
 
 
 class UniversitySlideController(http.Controller):
