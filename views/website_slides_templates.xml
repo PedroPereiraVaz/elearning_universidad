@@ -78,6 +78,10 @@
                 <t t-call="elearning_universidad.slide_content_delivery_body"/>
             </div>
         </xpath>
+        <!-- Ocultar botón Fullscreen para entregables -->
+        <xpath expr="//a[.//i[hasclass('fa-desktop')]]" position="attributes">
+            <attribute name="t-if">slide.slide_category != 'delivery'</attribute>
+        </xpath>
     </template>
 
     <!-- 2. Breadcrumbs: Navegación Master/Asignatura -->
@@ -116,7 +120,8 @@
             </a>
          </xpath>
     </template>
-    <!-- 5. Disable Unsubscribe for Subjects (Asignaturas) -->
+
+    <!-- 5. Deshabilitar desuscribirse de Asignaturas -->
     <template id="course_join_university" inherit_id="website_slides.course_join">
         <xpath expr="//button[hasclass('o_wslides_js_channel_unsubscribe')]" position="replace">
             <t t-if="channel.tipo_curso == 'asignatura'">
@@ -147,7 +152,7 @@
             </t>
         </xpath>
     </template>
-    <!-- 6. Embed View for Delivery (Fullscreen support) -->
+
     <!-- 6. Embed View for Delivery (Fullscreen support) -->
     <template id="embed_slide_university" inherit_id="website_slides.embed_slide">
         <xpath expr="//div[@id='PDFSlideViewer']" position="before">
@@ -165,7 +170,6 @@
         </xpath>
     </template>
     <!-- 7. [NUEVO] Soporte para Exámenes (Tratarlos como Certificaciones en Frontend) -->
-    <!-- 7. [NUEVO] Soporte para Exámenes (Tratarlos como Certificaciones en Frontend) -->
     <template id="slide_content_detailed_exam" inherit_id="website_slides_survey.slide_content_detailed">
         <!-- 1. Caso: No completado -->
         <xpath expr="//div[@t-if=&quot;slide.slide_category == 'certification' and not channel_progress[slide.id].get('completed')&quot;]" position="attributes">
@@ -182,12 +186,35 @@
     </template>
 
     <!-- 8. [NUEVO] Botón en Fullscreen para Exámenes -->
-    <!-- 8. [NUEVO] Botón en Fullscreen para Exámenes -->
     <!-- FIXED: Target the 'li' element exactly like website_slides_survey does, but for 'exam' category -->
     <template id="slide_fullscreen_sidebar_category_exam" inherit_id="website_slides_survey.slide_fullscreen_sidebar_category">
         <xpath expr="//li[@t-att-data-id='slide.id']" position="attributes">
             <attribute name="t-att-data-certification-id">slide.survey_id.id if slide.slide_category == 'exam' else (slide.survey_id.id if slide.slide_category == 'certification' else None)</attribute>
             <attribute name="t-att-data-category">'certification' if slide.slide_category == 'exam' else slide.slide_category</attribute>
+        </xpath>
+    </template>
+
+    <!-- 9. [NUEVO] Fix Sidebar Navigation for Deliveries (Force Exit Fullscreen) -->
+    <template id="slide_fullscreen_sidebar_category_delivery" inherit_id="website_slides.slide_fullscreen_sidebar_category">
+        <!-- 1. Ocultar el LI estándar para entregables -->
+        <xpath expr="//li[hasclass('o_wslides_fs_sidebar_list_item')]" position="attributes">
+            <attribute name="t-if">slide.slide_category != 'delivery'</attribute>
+        </xpath>
+        
+        <!-- 2. Insertar LI personalizado que actúe como link normal -->
+        <xpath expr="//li[hasclass('o_wslides_fs_sidebar_list_item')]" position="before">
+            <li t-if="slide.slide_category == 'delivery'" class="d-flex py-1">
+                <div class="ms-2 o_wslides_sidebar_content overflow-hidden w-100">
+                    <a t-att-href="slide.website_url" onclick="window.location.href=this.href; return false;" class="d-block text-decoration-none">
+                        <div class="d-flex align-items-center">
+                            <t t-if="is_member" t-call="website_slides.slide_sidebar_done_button"/>
+                            <i t-else="" t-attf-class="fa #{slide.slide_icon_class} me-2 text-white-50"/>
+                            <div class="o_wslides_fs_slide_name text-truncate text-white" t-esc="slide.name"/>
+                            <i class="fa fa-external-link ms-auto me-2 text-white-50 small" title="Salir de pantalla completa"/>
+                        </div>
+                    </a>
+                </div>
+            </li>
         </xpath>
     </template>
 

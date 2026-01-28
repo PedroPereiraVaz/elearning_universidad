@@ -158,11 +158,45 @@ class Slide(models.Model):
                 slide.slide_icon_class = 'fa-pencil-square-o'
         super(Slide, self.filtered(lambda s: s.slide_type != 'exam'))._compute_slide_icon_class()
 
-    
-    # [REMOVED] _onchange_slide_category_evaluable 
-    # Eliminado para evitar conflictos de UI donde el campo se reseteaba a False.
-    # El usuario debe marcar manualmente si es evaluable o confiar en el default de create().
-
+    def _generate_certification_url(self):
+        """ 
+        Generar URL para Exámenes igual que para Certificaciones.
+        Replica la lógica de _generate_certification_url de website_slides_survey pero para category='exam'.
+        """
+        certification_urls = super(Slide, self)._generate_certification_url()
+        
+        # Procesamos slides tipo 'exam' que tengan un examen vinculado
+        for slide in self.filtered(lambda s: s.slide_category == 'exam' and s.survey_id):
+            # Misma lógica que el original: User Input existente o nuevo
+            if slide.channel_id.is_member:
+                user_membership_id_sudo = slide.user_membership_id.sudo()
+                if user_membership_id_sudo.user_input_ids:
+                    last_user_input = next(user_input for user_input in user_membership_id_sudo.user_input_ids.sorted(
+                        lambda user_input: user_input.create_date, reverse=True
+                    ))
+                    certification_urls[slide.id] = last_user_input.get_start_url()
+                else:
+                    user_input = slide.survey_id.sudo()._create_answer(
+                        partner=self.env.user.partner_id,
+                        check_attempts=False,
+                        **{
+                            'slide_id': slide.id,
+                            'slide_partner_id': user_membership_id_sudo.id
+                        },
+                        invite_token=self.env['survey.user_input']._generate_invite_token()
+                    )
+                    certification_urls[slide.id] = user_input.get_start_url()
+            else:
+                user_input = slide.survey_id.sudo()._create_answer(
+                    partner=self.env.user.partner_id,
+                    check_attempts=False,
+                    test_entry=True, **{
+                        'slide_id': slide.id
+                    }
+                )
+                certification_urls[slide.id] = user_input.get_start_url()
+                
+        return certification_urls
 
     def action_publicar_contenido(self):
         """ Publica inmediatamente el contenido """
@@ -179,8 +213,6 @@ class Slide(models.Model):
         for slide in self:
             if not slide.fecha_programada:
                 raise ValidationError(_("Debe establecer una fecha programada antes de confirmar."))
-            # Opcional: Podríamos tener un estado 'scheduled' si quisiéramos, pero el campo basta.
-            # Aquí aseguramos que no esté publicado ya.
             if slide.is_published:
                 slide.is_published = False
 
@@ -256,16 +288,21 @@ class Slide(models.Model):
                     vals['es_evaluable'] = True
         
         slides = super().create(vals_list)
+        
+        # FIX CATEGORÍA EXAMEN
+        # El módulo website_slides_survey.create fuerza slide_category='certification' 
+        # si hay survey_id. Debemos restaurarlo si la intención original era 'exam'.
+        # Iteramos sobre los vals_list para ver qué pidió el usuario originalmente.
+        for slide, vals in zip(slides, vals_list):
+            if vals.get('slide_category') == 'exam' and slide.slide_category != 'exam':
+                slide.write({'slide_category': 'exam'})
+
         slides._asegurar_registros_seguimiento()
         slides._propagar_publicacion_asignatura()
         slides._sincronizar_asignatura_master() # Nuevo
         return slides
 
     def write(self, vals):
-            
-            
-        # [REVERTED] Enforcement removed to allow user to uncheck 'es_evaluable'.
-        # User wants to track deliveries/exams even if they don't count for the grade.
 
         res = super().write(vals)
         if 'es_evaluable' in vals and vals.get('es_evaluable'):
@@ -336,13 +373,12 @@ class Slide(models.Model):
         for slide in self:
             if slide.asignatura_id and slide.id:
                 # SIMPLIFICACIÓN ESTABILIDAD: Redirigimos a la portada de la Asignatura.
-                # Evitamos buscar contenido interno para prevenir recursiones (Crash en Emails).
                 slide.website_url = slide.asignatura_id.website_url
 
     def _action_mark_completed(self):
         """ 
         Evitar que los contenidos evaluables se marquen como completados 
-        solo por visitarlos. Deben completarse vía Quiz, Certificación o Archivo.
+        solo por visitarlos. Deben completarse vía Examen, Certificación o Archivo.
         """
         auto_completable = self.filtered(lambda s: not s.es_evaluable)
         if auto_completable:

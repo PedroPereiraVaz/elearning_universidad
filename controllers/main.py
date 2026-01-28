@@ -1,8 +1,6 @@
 from odoo import http, fields, _
 from odoo.http import request
 from odoo.addons.website_slides.controllers.main import WebsiteSlides
-# Importamos el controlador nativo de Certificaciones para extenderlo
-
 
 import base64
 
@@ -70,9 +68,6 @@ class UniversityWebsiteSlides(WebsiteSlides):
         """ 
         Manejo de navegación Master -> Asignatura 
         """
-        # Solución Error TypeError: '<' not supported between instances of 'NoneType' and 'int'
-        # El método original espera recibir channel_id en kwargs o como argumento si no se pasa por URL.
-        # Al usar el converter de modelo, channel es un recordset, pero channel_id es None por defecto en la firma original.
         channel_id = channel.id if channel else kw.get('channel_id')
         
         # 1. Inyección para breadcrumbs/navegación
@@ -140,7 +135,6 @@ class UniversitySlideController(http.Controller):
 
         # 6. Marcar como completado automáticamente
         # Nota: slide.action_mark_completed() marca para el usuario actual.
-        # Pero aquí ya tenemos eval_record, podríamos usarlo si hay API, pero la API estándar está en slide.
         slide.action_mark_completed()
 
         # 7. Redirigir de vuelta al contenido con un parámetro de éxito
