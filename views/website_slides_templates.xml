@@ -1,76 +1,81 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+    <!-- TEMPLATE COMPARTIDO: Cuerpo de la Entrega (Usado en Vista Normal y Fullscreen) -->
+    <template id="slide_content_delivery_body">
+        <div class="container py-4">
+            <div t-if="not slide.channel_id.is_member" class="alert alert-info shadow-sm" role="alert">
+                <h4 class="alert-heading fw-bold"><i class="fa fa-info-circle me-2"/>Inscripción Requerida</h4>
+                <p class="mb-0">Debes unirte a este curso para poder enviar y gestionar tus entregas académicas.</p>
+            </div>
+            
+            <div t-else="" class="card border-0 shadow-sm rounded-lg overflow-hidden">
+                <t t-set="user_eval" t-value="slide.sudo().user_membership_id"/>
+                <div class="card-header bg-primary text-white py-3">
+                    <h4 class="card-title mb-0 fw-bold"><i class="fa fa-cloud-upload me-2"/>Entrega de Trabajo Universitario</h4>
+                </div>
+                <div class="card-body p-4">
+                    <!-- Caso: Ya calificado -->
+                    <div t-if="user_eval and user_eval.estado_evaluacion == 'evaluado'" class="mb-4">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="bg-success text-white rounded-circle p-2 me-3">
+                                <i class="fa fa-check fa-lg"/>
+                            </div>
+                            <div>
+                                <h5 class="mb-1 fw-bold text-success">Calificación Confirmada</h5>
+                                <p class="text-muted mb-0 small">Tu trabajo ya ha sido revisado y la nota es definitiva.</p>
+                            </div>
+                        </div>
+                        <div class="bg-light p-4 rounded text-center border">
+                            <span class="d-block text-muted small text-uppercase fw-bold mb-1">Nota Académica</span>
+                            <span class="display-4 fw-bold text-primary" t-field="user_eval.nota_evaluacion"/>
+                            <span class="h4 text-muted"> / 10.0</span>
+                        </div>
+                    </div>
+
+                    <!-- Caso: Entregado esperando revisión (Solo si hay archivo subido) -->
+                    <div t-if="user_eval and user_eval.archivo_entrega and user_eval.estado_evaluacion == 'pendiente_revision'" class="alert alert-warning border shadow-sm p-4">
+                        <div class="d-flex align-items-center">
+                            <div class="text-warning me-3">
+                                <i class="fa fa-clock-o fa-3x"/>
+                            </div>
+                            <div>
+                                <h5 class="mb-1 fw-bold">Esperando Revisión del Docente</h5>
+                                <p class="mb-0">Tu archivo <strong><t t-esc="user_eval.nombre_archivo"/></strong> ha sido recibido correctamente. Puedes subir una nueva versión abajo si lo necesitas.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Caso: Formulario de Entrega (Siempre visible si no está evaluado) -->
+                    <div t-if="not user_eval or user_eval.estado_evaluacion != 'evaluado'">
+                        <div class="mb-4">
+                            <h5 class="fw-bold"><i class="fa fa-file-pdf-o me-2 text-danger"/>Sube tu entrega</h5>
+                            <p class="text-muted small">Carga tu documento o archivo comprimido según las instrucciones del docente. Se permite un archivo de hasta <t t-esc="slide.channel_id.upload_limit_mb"/>MB.</p>
+                        </div>
+                        <form action="/slides/slide/upload_delivery" method="post" enctype="multipart/form-data" class="bg-light p-4 rounded border">
+                            <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                            <input type="hidden" name="slide_id" t-att-value="slide.id"/>
+                            <div class="mb-4">
+                                <div class="input-group">
+                                    <input type="file" name="file" class="form-control" required="required" id="university_delivery_file"/>
+                                    <label class="input-group-text bg-white" for="university_delivery_file"><i class="fa fa-paperclip"/></label>
+                                </div>
+                                <div class="form-text mt-2"><i class="fa fa-lock me-1"/> Tu entrega será visible únicamente para el personal docente asignado.</div>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold">
+                                <i class="fa fa-send me-2"/>Presentar Trabajo Ahora
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
     <!-- 1. Contenido de Entrega de Archivos del Alumno -->
     <template id="slide_content_detailed_university" inherit_id="website_slides.slide_content_detailed">
         <xpath expr="//div[@t-if=&quot;slide.slide_category == 'article'&quot;]" position="after">
             <div t-if="slide.slide_category == 'delivery'" class="o_wslides_lesson_content_type">
-                <div class="container py-4">
-                    <div t-if="not slide.channel_id.is_member" class="alert alert-info shadow-sm" role="alert">
-                        <h4 class="alert-heading fw-bold"><i class="fa fa-info-circle me-2"/>Inscripción Requerida</h4>
-                        <p class="mb-0">Debes unirte a este curso para poder enviar y gestionar tus entregas académicas.</p>
-                    </div>
-                    
-                    <div t-else="" class="card border-0 shadow-sm rounded-lg overflow-hidden">
-                        <t t-set="user_eval" t-value="slide.sudo().user_membership_id"/>
-                        <div class="card-header bg-primary text-white py-3">
-                            <h4 class="card-title mb-0 fw-bold"><i class="fa fa-cloud-upload me-2"/>Entrega de Trabajo Universitario</h4>
-                        </div>
-                        <div class="card-body p-4">
-                            <!-- Caso: Ya calificado -->
-                            <div t-if="user_eval and user_eval.estado_evaluacion == 'evaluado'" class="mb-4">
-                                <div class="d-flex align-items-center mb-3">
-                                    <div class="bg-success text-white rounded-circle p-2 me-3">
-                                        <i class="fa fa-check fa-lg"/>
-                                    </div>
-                                    <div>
-                                        <h5 class="mb-1 fw-bold text-success">Calificación Confirmada</h5>
-                                        <p class="text-muted mb-0 small">Tu trabajo ya ha sido revisado y la nota es definitiva.</p>
-                                    </div>
-                                </div>
-                                <div class="bg-light p-4 rounded text-center border">
-                                    <span class="d-block text-muted small text-uppercase fw-bold mb-1">Nota Académica</span>
-                                    <span class="display-4 fw-bold text-primary" t-field="user_eval.nota_evaluacion"/>
-                                    <span class="h4 text-muted"> / 10.0</span>
-                                </div>
-                            </div>
-
-                            <!-- Caso: Entregado esperando revisión (Solo si hay archivo subido) -->
-                            <div t-if="user_eval and user_eval.archivo_entrega and user_eval.estado_evaluacion == 'pendiente_revision'" class="alert alert-warning border shadow-sm p-4">
-                                <div class="d-flex align-items-center">
-                                    <div class="text-warning me-3">
-                                        <i class="fa fa-clock-o fa-3x"/>
-                                    </div>
-                                    <div>
-                                        <h5 class="mb-1 fw-bold">Esperando Revisión del Docente</h5>
-                                        <p class="mb-0">Tu archivo <strong><t t-esc="user_eval.nombre_archivo"/></strong> ha sido recibido correctamente. Puedes subir una nueva versión abajo si lo necesitas.</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Caso: Formulario de Entrega (Siempre visible si no está evaluado) -->
-                            <div t-if="not user_eval or user_eval.estado_evaluacion != 'evaluado'">
-                                <div class="mb-4">
-                                    <h5 class="fw-bold"><i class="fa fa-file-pdf-o me-2 text-danger"/>Sube tu entrega</h5>
-                                    <p class="text-muted small">Carga tu documento o archivo comprimido según las instrucciones del docente. Se permite un archivo de hasta <t t-esc="slide.channel_id.upload_limit_mb"/>MB.</p>
-                                </div>
-                                <form action="/slides/slide/upload_delivery" method="post" enctype="multipart/form-data" class="bg-light p-4 rounded border">
-                                    <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
-                                    <input type="hidden" name="slide_id" t-att-value="slide.id"/>
-                                    <div class="mb-4">
-                                        <div class="input-group">
-                                            <input type="file" name="file" class="form-control" required="required" id="university_delivery_file"/>
-                                            <label class="input-group-text bg-white" for="university_delivery_file"><i class="fa fa-paperclip"/></label>
-                                        </div>
-                                        <div class="form-text mt-2"><i class="fa fa-lock me-1"/> Tu entrega será visible únicamente para el personal docente asignado.</div>
-                                    </div>
-                                    <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold">
-                                        <i class="fa fa-send me-2"/>Presentar Trabajo Ahora
-                                    </button>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <!-- Usamos la plantilla compartida -->
+                <t t-call="elearning_universidad.slide_content_delivery_body"/>
             </div>
         </xpath>
     </template>
@@ -97,8 +102,15 @@
     <!-- 4. Fix Link for Sub-Courses (Asignaturas) in List View -->
     <template id="course_slides_list_slide_university" inherit_id="website_slides.course_slides_list_slide">
          <xpath expr="//a[hasclass('o_wslides_js_slides_list_slide_link')]" position="replace">
-            <a t-if="not invite_preview and (slide.is_preview or channel.is_member or channel.can_publish)" 
+            <!-- Caso GENERAL: Mantener comportamiento nativo (AJAX/Fullscreen) -->
+            <a t-if="not invite_preview and (slide.is_preview or channel.is_member or channel.can_publish) and slide.slide_category != 'delivery'" 
                class="o_wslides_js_slides_list_slide_link" 
+               t-att-href="slide.website_url">
+                <span t-field="slide.name"/>
+            </a>
+            <!-- Caso ENTREGABLES: Forzar navegación normal (Sin clase JS) -->
+            <a t-if="not invite_preview and (slide.is_preview or channel.is_member or channel.can_publish) and slide.slide_category == 'delivery'" 
+               class="text-decoration-none" 
                t-att-href="slide.website_url">
                 <span t-field="slide.name"/>
             </a>
@@ -136,73 +148,47 @@
         </xpath>
     </template>
     <!-- 6. Embed View for Delivery (Fullscreen support) -->
+    <!-- 6. Embed View for Delivery (Fullscreen support) -->
     <template id="embed_slide_university" inherit_id="website_slides.embed_slide">
-        <xpath expr="//div[@id='PDFSlideViewer']" position="inside">
-            <div t-if="slide.slide_category == 'delivery'" class="container-fluid py-3" style="height: 100%; overflow-y: auto;">
-                 <t t-set="user_eval" t-value="slide.sudo().user_membership_id"/>
-                 
-                 <div class="card border-0 shadow-sm">
-                    <div class="card-header bg-primary text-white py-2">
-                        <h5 class="card-title mb-0 fw-bold"><i class="fa fa-cloud-upload me-2"/>Entrega de Trabajo</h5>
+        <xpath expr="//div[@id='PDFSlideViewer']" position="before">
+            <t t-if="slide.slide_category == 'delivery'">
+                <div class="d-flex align-items-center justify-content-center h-100 w-100 bg-black text-white p-5">
+                    <div class="text-center">
+                        <i class="fa fa-circle-o-notch fa-spin fa-3x mb-3"/>
+                        <h3>Redirigiendo a vista de entrega...</h3>
+                        <script>
+                            window.top.location.href = "<t t-esc="slide.website_url"/>";
+                        </script>
                     </div>
-                    <div class="card-body">
-                         <!-- Caso: Ya calificado -->
-                        <div t-if="user_eval and user_eval.estado_evaluacion == 'evaluado'" class="mb-2 text-center">
-                             <div class="bg-success text-white rounded-circle p-2 d-inline-block mb-2">
-                                <i class="fa fa-check fa-2x"/>
-                            </div>
-                            <h5 class="text-success">Calificación: <span t-field="user_eval.nota_evaluacion"/> / 10</h5>
-                        </div>
-
-                        <!-- Caso: Pendiente Revisión -->
-                         <div t-if="user_eval and user_eval.archivo_entrega and user_eval.estado_evaluacion == 'pendiente_revision'" class="alert alert-warning">
-                            <i class="fa fa-clock-o me-2"/> Esperando Revisión
-                            <br/><small>Archivo: <span t-field="user_eval.nombre_archivo"/></small>
-                        </div>
-
-                         <!-- Caso: Formulario (Siempre visible si no está evaluado) -->
-                        <div t-if="not user_eval or user_eval.estado_evaluacion != 'evaluado'">
-                             <form action="/slides/slide/upload_delivery" method="post" enctype="multipart/form-data">
-                                <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
-                                <input type="hidden" name="slide_id" t-att-value="slide.id"/>
-                                <div class="mb-3">
-                                    <label class="form-label text-muted">Subir archivo (PDF, ZIP...)</label>
-                                    <input type="file" name="file" class="form-control" required="required"/>
-                                </div>
-                                <button type="submit" class="btn btn-primary w-100">
-                                    <i class="fa fa-send me-2"/>Enviar
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-                 </div>
-            </div>
+                </div>
+            </t>
         </xpath>
     </template>
     <!-- 7. [NUEVO] Soporte para Exámenes (Tratarlos como Certificaciones en Frontend) -->
+    <!-- 7. [NUEVO] Soporte para Exámenes (Tratarlos como Certificaciones en Frontend) -->
     <template id="slide_content_detailed_exam" inherit_id="website_slides_survey.slide_content_detailed">
-        <!-- Modificamos la condicional para incluir 'exam' dondequiera que haya 'certification' -->
-         <xpath expr="//div[@t-if='slide.slide_category == &quot;certification&quot;']" position="attributes">
-            <attribute name="t-if">slide.slide_category in ['certification', 'exam']</attribute>
+        <!-- 1. Caso: No completado -->
+        <xpath expr="//div[@t-if=&quot;slide.slide_category == 'certification' and not channel_progress[slide.id].get('completed')&quot;]" position="attributes">
+            <attribute name="t-if">slide.slide_category in ['certification', 'exam'] and not channel_progress[slide.id].get('completed')</attribute>
         </xpath>
-        <!-- Actualizar textos específicos si es necesario, pero dejar la funcionalidad base -->
+        <!-- 2. Caso: Completado -->
+        <xpath expr="//div[@t-if=&quot;slide.slide_category == 'certification' and channel_progress[slide.id].get('completed')&quot;]" position="attributes">
+            <attribute name="t-if">slide.slide_category in ['certification', 'exam'] and channel_progress[slide.id].get('completed')</attribute>
+        </xpath>
+        <!-- 3. Caso: Can Upload (Add Questions) -->
+        <xpath expr="//div[@t-if=&quot;slide.slide_category == 'certification' and slide.channel_id.can_upload&quot;]" position="attributes">
+            <attribute name="t-if">slide.slide_category in ['certification', 'exam'] and slide.channel_id.can_upload</attribute>
+        </xpath>
     </template>
 
     <!-- 8. [NUEVO] Botón en Fullscreen para Exámenes -->
+    <!-- 8. [NUEVO] Botón en Fullscreen para Exámenes -->
+    <!-- FIXED: Target the 'li' element exactly like website_slides_survey does, but for 'exam' category -->
     <template id="slide_fullscreen_sidebar_category_exam" inherit_id="website_slides_survey.slide_fullscreen_sidebar_category">
-        <xpath expr="//div[@t-if='slide.slide_category == &quot;certification&quot;']" position="attributes">
-            <attribute name="t-if">slide.slide_category in ['certification', 'exam']</attribute>
+        <xpath expr="//li[@t-att-data-id='slide.id']" position="attributes">
+            <attribute name="t-att-data-certification-id">slide.survey_id.id if slide.slide_category == 'exam' else (slide.survey_id.id if slide.slide_category == 'certification' else None)</attribute>
+            <attribute name="t-att-data-category">'certification' if slide.slide_category == 'exam' else slide.slide_category</attribute>
         </xpath>
     </template>
 
-    <!-- 9. [NUEVO] Contenido Fullscreen para Entregables (Delivery) -->
-    <!-- Native slide_fullscreen_content branches by category. We need to add our branch. -->
-    <template id="slide_fullscreen_content_delivery" inherit_id="website_slides.slide_fullscreen_content">
-        <xpath expr="//div[@t-if=&quot;slide.slide_category == 'article'&quot;]" position="after">
-            <div t-if="slide.slide_category == 'delivery'" class="bg-white h-100 overflow-auto">
-                 <!-- Reutilizamos la lógica del Embed que ya tiene el formulario -->
-                 <t t-call="website_slides.embed_slide"/>
-            </div>
-        </xpath>
-    </template>
 </odoo>
