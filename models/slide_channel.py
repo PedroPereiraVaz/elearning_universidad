@@ -209,13 +209,6 @@ class CanalSlide(models.Model):
         help="Manual en Asignaturas. Automático en Masters (suma de asignaturas) y Microcredenciales (suma de contenidos)."
     )
 
-    @api.constrains('master_id', 'duracion_horas')
-    def _check_asignatura_duracion_master(self):
-        for record in self:
-            if record.tipo_curso == 'asignatura' and record.master_id:
-                if record.duracion_horas <= 0:
-                    raise ValidationError("Las asignaturas vinculadas a un Master deben tener una duración mayor a 0 para asegurar el cálculo ponderado de la nota.")
-
     precio_curso = fields.Float(
         string='Precio del Curso', 
         digits='Product Price',
@@ -358,6 +351,31 @@ class CanalSlide(models.Model):
                 slides_huerfanos.unlink()
 
 
+    def action_open_add_asignatura(self):
+        """ 
+        Acción llamada por botón 'Agregar Asignatura' en la vista de lista de contenidos del Master.
+        Al ser un botón type='object', Odoo hace AUTOSAVE del registro Master antes de ejecutar este método.
+        Esto previene el error de 'Virtual ID' (Owl Error) al crear relaciones One2many antes de que el padre exista.
+        
+        Luego, abrimos el formulario de creación de slide con los contextos necesarios.
+        """
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Agregar Asignatura',
+            'res_model': 'slide.slide',
+            'view_mode': 'form',
+            'view_id': self.env.ref('elearning_universidad.view_slide_slide_form_add_asignatura').id,
+            'target': 'new',
+            'context': {
+                'default_channel_id': self.id,
+                'default_slide_category': 'sub_course',
+                'default_is_category': False,
+            }
+        }
+
+
+
     # --- Acciones de Workflow (Estados) con Validaciones ---
 
     def _format_notification_html(self, titulo, mensaje, tipo='info'):
@@ -456,6 +474,10 @@ class CanalSlide(models.Model):
                 # 4. Plantilla de Título (Si emite título)
                 if record.tiene_titulo and not record.plantilla_titulo:
                     raise ValidationError(f"El curso '{record.name}' emite título pero no tiene seleccionada ninguna Plantilla.")
+
+                # 5. Duración de Asignatura (Requisito Académico)
+                if record.tipo_curso == 'asignatura' and record.duracion_horas <= 0:
+                    raise ValidationError(f"La asignatura '{record.name}' debe tener una duración mayor a 0 horas para ser publicada.")
 
     @api.onchange('master_id')
     def _onchange_master_id_directores(self):
@@ -900,6 +922,7 @@ class CanalSlide(models.Model):
                     'name': self.name,
                     'list_price': self.precio_curso,
                     'type': 'service',
+                    'service_tracking': 'course',
                     'invoice_policy': 'order',
                     'is_published': True,
                     'uom_id': self.env.ref('uom.product_uom_unit').id,

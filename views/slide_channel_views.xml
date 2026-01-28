@@ -255,6 +255,14 @@
 
             <!-- 2. Insertamos el campo PROXY 'slide_ids_master' SOLO para Masters (Visible solo si Master) -->
             <xpath expr="//field[@name='slide_ids']" position="after">
+                <div class="mb-3" invisible="tipo_curso != 'master'">
+                    <button name="action_open_add_asignatura" 
+                            string="Agregar Asignatura" 
+                            type="object" 
+                            class="btn btn-primary"
+                            icon="fa-plus-circle"
+                            help="Guarda el Master y abre el formulario para vincular una asignatura."/>
+                </div>
                 <field name="slide_ids_master" 
                        invisible="tipo_curso != 'master'" 
                        widget="slide_category_one2many" 
@@ -276,7 +284,6 @@
                         <field name="source_type" column_invisible="True"/>
                         <control>
                             <create name="add_slide_section" string="Agregar Sección" context="{'default_is_category': True}"/>
-                            <create name="add_asignatura" string="Agregar Asignatura" context="{'default_slide_category': 'sub_course', 'default_is_category': False, 'form_view_ref': 'elearning_universidad.view_slide_slide_form_add_asignatura'}"/>
                         </control>
                      </list>
                 </field>

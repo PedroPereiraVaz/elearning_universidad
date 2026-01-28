@@ -58,6 +58,11 @@
                         options="{'no_quick_create': True}"/> 
                  
                  <field name="canal_tipo_curso" invisible="1"/>
+                 
+                 <field name="asignatura_duracion" 
+                        invisible="slide_category != 'sub_course'"
+                        decoration-danger="asignatura_duracion == 0"
+                        groups="elearning_universidad.grupo_administrador_universidad,elearning_universidad.grupo_director_academico"/>
             </xpath>
 
         </field>
@@ -110,7 +115,6 @@
                                context="{'default_tipo_curso': 'asignatura', 'avoid_slide_sync': True, 'locked_master_context': True, 'hide_workflow_buttons': True}"
                                domain="[('tipo_curso', '=', 'asignatura'), ('master_id', '=', False)]"
                                required="1"/>
-                        <field name="asignatura_duracion" invisible="not asignatura_id" decoration-danger="asignatura_duracion == 0"/>
                         
                         <!-- REUTILIZACIÓN: Controles de Publicación ELIMINADOS por solicitud -->
                         <field name="active" invisible="1"/>

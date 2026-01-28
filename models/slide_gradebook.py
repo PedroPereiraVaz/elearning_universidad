@@ -15,7 +15,7 @@ class SlideSlidePartner(models.Model):
     estado_evaluacion = fields.Selection([
         ('pendiente_presentar', 'Pendiente de Presentar'),
         ('pendiente_revision', 'Pendiente de Revisión'),
-        ('evaluado', 'Evaluado y Cerrado')
+        ('evaluado', 'Evaluado')
     ], string='Estado de Evaluación', default='pendiente_presentar', required=True)
 
     nota_evaluacion = fields.Float(string='Nota', default=0.0)
@@ -166,8 +166,8 @@ class SlideChannelPartner(models.Model):
     )
     
     estado_nota = fields.Selection([
-        ('pendiente_revision', 'En Curso / Pendiente de Revisión'),
-        ('evaluado', 'Evaluado y Confirmado'),
+        ('pendiente_revision', 'Pendiente'),
+        ('evaluado', 'Evaluado'),
         ('pendiente_certificar', 'Título Pendiente de Emitir'),
         ('certificado', 'Título Emitido')
     ], string='Estado Acta', default='pendiente_revision', required=True)

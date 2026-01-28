@@ -138,7 +138,7 @@
                                            decoration-success="estado_evaluacion == 'evaluado'"/>
                                            
                                     <!-- Botón Renombrado: Confirmar -> Evaluado -->
-                                    <button name="accion_confirmar_nota" string="Evaluado" type="object" icon="fa-check-circle"
+                                    <button name="accion_confirmar_nota" string="Confirmar nota" type="object" icon="fa-check-circle"
                                             invisible="estado_evaluacion == 'evaluado'" class="btn-sm btn-success"/>
                                 </list>
                             </field>
@@ -196,7 +196,7 @@
                 <field name="fecha_entrega"/>
                 <field name="archivo_entrega" widget="binary" filename="nombre_archivo" string="Entrega"/>
                 <field name="estado_evaluacion" widget="badge" decoration-warning="estado_evaluacion == 'pendiente_revision'"/>
-                <button name="accion_confirmar_nota" string="Cerrar Nota" type="object" icon="fa-check" title="Confirmar esta nota"/>
+                <button name="accion_confirmar_nota" string="Confirmar Nota" type="object" icon="fa-check" title="Confirmar esta nota"/>
             </list>
         </field>
     </record>
