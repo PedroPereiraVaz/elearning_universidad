@@ -197,15 +197,15 @@
     <!-- 9. [NUEVO] Fix Sidebar Navigation for Deliveries (Force Exit Fullscreen) -->
     <template id="slide_fullscreen_sidebar_category_delivery" inherit_id="website_slides.slide_fullscreen_sidebar_category">
         <!-- 1. Ocultar el LI estándar para entregables -->
-        <xpath expr="//li[hasclass('o_wslides_fs_sidebar_list_item')]" position="attributes">
+        <xpath expr="//li[@t-att-data-id='slide.id']" position="attributes">
             <attribute name="t-if">slide.slide_category != 'delivery'</attribute>
         </xpath>
         
-        <!-- 2. Insertar LI personalizado que actúe como link normal -->
-        <xpath expr="//li[hasclass('o_wslides_fs_sidebar_list_item')]" position="before">
+        <!-- 2. Insertar LI personalizado que actúe como link normal con redirección TOP -->
+        <xpath expr="//li[@t-att-data-id='slide.id']" position="before">
             <li t-if="slide.slide_category == 'delivery'" class="d-flex py-1">
                 <div class="ms-2 o_wslides_sidebar_content overflow-hidden w-100">
-                    <a t-att-href="slide.website_url" onclick="window.location.href=this.href; return false;" class="d-block text-decoration-none">
+                    <a t-att-href="slide.website_url" onclick="window.top.location.href=this.href; return false;" target="_top" class="d-block text-decoration-none">
                         <div class="d-flex align-items-center">
                             <t t-if="is_member" t-call="website_slides.slide_sidebar_done_button"/>
                             <i t-else="" t-attf-class="fa #{slide.slide_icon_class} me-2 text-white-50"/>

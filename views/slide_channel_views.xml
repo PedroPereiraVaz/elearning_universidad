@@ -137,7 +137,8 @@
                         confirm="¿Está seguro de que desea finalizar y archivar este curso? Esta acción es irreversible desde el portal."
                         invisible="estado_universidad != 'publicado' or tipo_curso == 'asignatura' or context.get('hide_workflow_buttons')"/>
                 
-                <field name="estado_universidad" widget="statusbar" statusbar_visible="borrador,presentado,publicado,finalizado" invisible="context.get('hide_workflow_buttons')"/>
+                <field name="estado_universidad" widget="statusbar" statusbar_visible="borrador,publicado" invisible="tipo_curso != 'asignatura'"/>
+                <field name="estado_universidad" widget="statusbar" statusbar_visible="borrador,presentado,publicado,finalizado" invisible="tipo_curso == 'asignatura' or context.get('hide_workflow_buttons')"/>
             </xpath>
 
             <!-- INTEGRAMOS CONFIGURACIÓN DENTRO DE LA PESTAÑA OPCIONES (Options) -->

@@ -133,9 +133,9 @@ class UniversitySlideController(http.Controller):
             'fecha_entrega': fields.Datetime.now()
         })
 
-        # 6. Marcar como completado automáticamente
-        # Nota: slide.action_mark_completed() marca para el usuario actual.
-        slide.action_mark_completed()
+        # 6. Marcar como completado automáticamente (Check Verde)
+        # Forzamos la escritura porque action_mark_completed() está bloqueado para evaluables
+        eval_record.completed = True
 
         # 7. Redirigir de vuelta al contenido con un parámetro de éxito
         return request.redirect(slide.website_url + "?delivery_success=1")
