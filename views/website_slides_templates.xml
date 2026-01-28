@@ -105,19 +105,33 @@
     </template>
     <!-- 4. Fix Link for Sub-Courses (Asignaturas) in List View -->
     <template id="course_slides_list_slide_university" inherit_id="website_slides.course_slides_list_slide">
-         <xpath expr="//div[hasclass('text-truncate')]/a[hasclass('o_wslides_js_slides_list_slide_link')]" position="replace">
-            <!-- Caso GENERAL: Mantener comportamiento nativo (AJAX/Fullscreen) -->
-            <a t-if="not invite_preview and (slide.is_preview or channel.is_member or channel.can_publish) and slide.slide_category != 'delivery'" 
-               class="o_wslides_js_slides_list_slide_link" 
-               t-att-href="slide.website_url">
-                <span t-field="slide.name"/>
-            </a>
-            <!-- Caso ENTREGABLES: Forzar navegación normal (Sin clase JS) -->
-            <a t-if="not invite_preview and (slide.is_preview or channel.is_member or channel.can_publish) and slide.slide_category == 'delivery'" 
-               class="text-decoration-none" 
-               t-att-href="slide.website_url">
-                <span t-field="slide.name"/>
-            </a>
+         <xpath expr="//div[hasclass('text-truncate')]" position="inside">
+            <!-- Limpiamos contenido previo (aunque xpath replace debería bastar, aseguremos reemplazo del a) -->
+            <!-- ESTRATEGIA: Reemplazar el <a> original. Si hay OTROS elementos, podrían ser el problema. -->
+            <!-- Pero si el problema es "duplicado", y mi xpath anterior NO mató al duplicado, es que el duplicado NO coincidía con el xpath. -->
+            <!-- Voy a reemplazar EL DIV COMPLETO en el backend si pudiera, pero aquí heredo. -->
+         </xpath>
+         
+         <!-- INTENTO 3: Reemplazar el contenedor del nombre completamente -->
+         <xpath expr="//div[hasclass('text-truncate')]" position="replace">
+            <div class="text-truncate me-auto">
+                <!-- Caso GENERAL: Mantener comportamiento nativo (AJAX/Fullscreen) -->
+                <a t-if="not invite_preview and (slide.is_preview or channel.is_member or channel.can_publish) and slide.slide_category != 'delivery'" 
+                   class="o_wslides_js_slides_list_slide_link" 
+                   t-att-href="slide.website_url">
+                    <span t-field="slide.name"/>
+                </a>
+                <!-- Caso ENTREGABLES: Forzar navegación normal (Sin clase JS) -->
+                <a t-if="not invite_preview and (slide.is_preview or channel.is_member or channel.can_publish) and slide.slide_category == 'delivery'" 
+                   class="text-decoration-none" 
+                   t-att-href="slide.website_url">
+                    <span t-field="slide.name"/>
+                </a>
+                <!-- Caso ELSE (No acceso) -->
+                <span t-if="not (not invite_preview and (slide.is_preview or channel.is_member or channel.can_publish))">
+                    <span t-esc="slide.name"/>
+                </span>
+            </div>
          </xpath>
     </template>
 
