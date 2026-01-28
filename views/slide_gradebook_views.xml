@@ -70,7 +70,15 @@
                             invisible="estado_nota not in ['pendiente_presentar', 'pendiente_revision']"/>
                     <button name="action_issue_university_degree" string="Emitir Título" type="object" class="btn-success"
                             invisible="not tiene_titulo_curso or estado_nota != 'evaluado' or not titulo_emitido == False"/>
-                    <field name="estado_nota" widget="statusbar"/>
+                                        <!-- Para Masters y Microcredenciales: Flujo Completo -->
+                    <field name="estado_nota" widget="statusbar" 
+                           invisible="tipo_curso_rel == 'asignatura'"
+                           statusbar_visible="pendiente_revision,evaluado,pendiente_certificar,certificado"/>
+                    
+                    <!-- Para Asignaturas: Flujo Simple (Sin Certificación) -->
+                    <field name="estado_nota" widget="statusbar" 
+                           invisible="tipo_curso_rel != 'asignatura'"
+                           statusbar_visible="pendiente_revision,evaluado"/>
                 </header>
                 <sheet>
                     <!-- Campo técnico para control UI -->

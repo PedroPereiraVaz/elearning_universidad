@@ -105,7 +105,7 @@
     </template>
     <!-- 4. Fix Link for Sub-Courses (Asignaturas) in List View -->
     <template id="course_slides_list_slide_university" inherit_id="website_slides.course_slides_list_slide">
-         <xpath expr="//a[hasclass('o_wslides_js_slides_list_slide_link')]" position="replace">
+         <xpath expr="//div[hasclass('text-truncate')]/a[hasclass('o_wslides_js_slides_list_slide_link')]" position="replace">
             <!-- Caso GENERAL: Mantener comportamiento nativo (AJAX/Fullscreen) -->
             <a t-if="not invite_preview and (slide.is_preview or channel.is_member or channel.can_publish) and slide.slide_category != 'delivery'" 
                class="o_wslides_js_slides_list_slide_link" 
