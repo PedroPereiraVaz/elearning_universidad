@@ -313,9 +313,15 @@ class Slide(models.Model):
 
     @api.onchange('asignatura_id')
     def _onchange_asignatura_id(self):
-        """ Copiar título de la asignatura al contenido automáticamente (porque campo name suele estar oculto en UI) """
-        if self.asignatura_id and not self.name:
+        """ Copiar título de la asignatura al contenido automáticamente (Sobrescritura forzada) """
+        if self.asignatura_id:
             self.name = self.asignatura_id.name
+
+    @api.onchange('exam_id')
+    def _onchange_exam_id(self):
+        """ Copiar título del examen al contenido automáticamente """
+        if self.exam_id:
+            self.name = self.exam_id.title
 
     @api.model_create_multi
     def create(self, vals_list):

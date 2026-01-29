@@ -182,7 +182,6 @@
                      <group>
                          <field name="master_id" 
                                 invisible="tipo_curso != 'asignatura' or context.get('locked_master_context') or is_exclusive_teacher" 
-                                required="tipo_curso == 'asignatura' and not context.get('locked_master_context')"
                                 readonly="not can_manage_config"/>
                      </group>
                  </group>
