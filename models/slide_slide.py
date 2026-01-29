@@ -279,6 +279,13 @@ class Slide(models.Model):
             if slide.es_evaluable and slide.slide_category not in ALLOWED:
                 raise ValidationError(_("Solo los siguientes contenidos pueden ser evaluables: Examen, Asignatura, Entregable, Certificación.\nEl tipo '%s' no admite evaluación.") % slide.slide_category)
 
+    @api.constrains('slide_category', 'completion_time')
+    def _check_completion_time_asignatura(self):
+        """ La duración de la asignatura como contenido debe ser mayor a 0 """
+        for slide in self:
+            if slide.slide_category == 'sub_course' and slide.completion_time <= 0:
+                raise ValidationError(_("La duración de la asignatura '%s' debe ser mayor a 0 horas.") % slide.name)
+
     def _propagar_publicacion_asignatura(self):
         """ Sincroniza el estado de la asignatura vinculada con el slide del Master """
         if self.env.context.get('avoid_recursive_sync'):

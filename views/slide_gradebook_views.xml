@@ -26,7 +26,7 @@
         <field name="view_id" ref="view_slide_channel_tree_gradebook_selection"/>
         <!-- Dominio: Solo mostramos cursos que no son asignaturas "sueltas" (el usuario entra por Master o Micro) -->
         <!-- OJO: Si quiere ver asignaturas sueltas, quitamos el dominio. Asumimos Masters y Micros como contenedores principales -->
-        <field name="domain">[('tipo_curso', '!=', 'asignatura')]</field> 
+        <field name="domain">[('tipo_curso', '!=', 'asignatura'), ('estado_universidad', '=', 'publicado')]</field> 
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">
                 No tienes cursos asignados para evaluar.
@@ -137,8 +137,8 @@
                                     <field name="archivo_entrega" widget="binary" filename="nombre_archivo" optional="show"/>
                                     <field name="nombre_archivo" column_invisible="True"/>
                                     
-                                    <!-- Calificación (Siempre editable para feedback) -->
-                                    <field name="nota_evaluacion" string="Calificación"/>
+                                    <!-- Calificación (Solo editable si no está confirmado) -->
+                                    <field name="nota_evaluacion" string="Calificación" readonly="estado_evaluacion == 'evaluado'"/>
                                     
                                     <field name="estado_evaluacion" widget="badge" 
                                            decoration-info="estado_evaluacion == 'pendiente_presentar'"
