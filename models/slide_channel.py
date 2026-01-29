@@ -221,13 +221,13 @@ class CanalSlide(models.Model):
         help="Tamaño máximo permitido para los entregables de los alumnos (0 para ilimitado)."
     )
 
+    # --- Títulos ---
+    tiene_titulo = fields.Boolean(string='Emitir Título', default=False)
+
     # --- Campos Estadísticos Técnicos ---
     nbr_sub_course = fields.Integer(string='Número de Asignaturas', compute='_compute_slides_statistics', store=True, compute_sudo=True)
     nbr_delivery = fields.Integer(string='Número de Entregables', compute='_compute_slides_statistics', store=True, compute_sudo=True)
     nbr_exam = fields.Integer(string='Número de Exámenes', compute='_compute_slides_statistics', store=True, compute_sudo=True)
-
-    # --- Títulos ---
-    tiene_titulo = fields.Boolean(string='Emitir Título', default=False)
     
     @api.model
     def _get_plantillas_titulo(self):
