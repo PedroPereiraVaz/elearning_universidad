@@ -69,6 +69,87 @@ action = action_data
 
     <!-- 
         =================================================================
+        ACCIONES CONCRETAS (WINDOW ACTIONS) PARA PERSISTENCIA DE CONTEXTO
+        =================================================================
+    -->
+
+    <!-- MICROCREDENCIALES -->
+    <record id="act_window_micro_full" model="ir.actions.act_window">
+        <field name="name">Microcredenciales</field>
+        <field name="res_model">slide.channel</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="domain">[('tipo_curso', '=', 'microcredencial')]</field>
+        <field name="context">{'default_tipo_curso': 'microcredencial'}</field>
+        <field name="view_ids" eval="[(5, 0, 0),
+            (0, 0, {'view_mode': 'kanban', 'view_id': ref('website_slides.slide_channel_view_kanban')}),
+            (0, 0, {'view_mode': 'list', 'view_id': ref('elearning_universidad.view_slide_channel_tree_university_admin')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('website_slides.view_slide_channel_form')})]"/>
+    </record>
+
+    <record id="act_window_micro_readonly" model="ir.actions.act_window">
+        <field name="name">Microcredenciales</field>
+        <field name="res_model">slide.channel</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="domain">[('tipo_curso', '=', 'microcredencial')]</field>
+        <field name="context">{'default_tipo_curso': 'microcredencial', 'create': False}</field>
+        <field name="view_ids" eval="[(5, 0, 0),
+            (0, 0, {'view_mode': 'kanban', 'view_id': ref('elearning_universidad.view_slide_channel_kanban_readonly')}),
+            (0, 0, {'view_mode': 'list', 'view_id': ref('elearning_universidad.view_slide_channel_tree_readonly')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('website_slides.view_slide_channel_form')})]"/>
+    </record>
+
+    <!-- MASTERS -->
+    <record id="act_window_master_full" model="ir.actions.act_window">
+        <field name="name">Masters</field>
+        <field name="res_model">slide.channel</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="domain">[('tipo_curso', '=', 'master')]</field>
+        <field name="context">{'default_tipo_curso': 'master'}</field>
+        <field name="view_ids" eval="[(5, 0, 0),
+            (0, 0, {'view_mode': 'kanban', 'view_id': ref('website_slides.slide_channel_view_kanban')}),
+            (0, 0, {'view_mode': 'list', 'view_id': ref('elearning_universidad.view_slide_channel_tree_university_admin')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('website_slides.view_slide_channel_form')})]"/>
+    </record>
+
+    <record id="act_window_master_readonly" model="ir.actions.act_window">
+        <field name="name">Masters</field>
+        <field name="res_model">slide.channel</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="domain">[('tipo_curso', '=', 'master')]</field>
+        <field name="context">{'default_tipo_curso': 'master', 'create': False}</field>
+        <field name="view_ids" eval="[(5, 0, 0),
+            (0, 0, {'view_mode': 'kanban', 'view_id': ref('elearning_universidad.view_slide_channel_kanban_readonly')}),
+            (0, 0, {'view_mode': 'list', 'view_id': ref('elearning_universidad.view_slide_channel_tree_readonly')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('website_slides.view_slide_channel_form')})]"/>
+    </record>
+
+    <!-- ASIGNATURAS -->
+    <record id="act_window_asignatura_full" model="ir.actions.act_window">
+        <field name="name">Asignaturas</field>
+        <field name="res_model">slide.channel</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="domain">[('tipo_curso', '=', 'asignatura')]</field>
+        <field name="context">{'default_tipo_curso': 'asignatura'}</field>
+        <field name="view_ids" eval="[(5, 0, 0),
+            (0, 0, {'view_mode': 'kanban', 'view_id': ref('website_slides.slide_channel_view_kanban')}),
+            (0, 0, {'view_mode': 'list', 'view_id': ref('elearning_universidad.view_slide_channel_tree_university_admin')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('website_slides.view_slide_channel_form')})]"/>
+    </record>
+
+    <record id="act_window_asignatura_readonly" model="ir.actions.act_window">
+        <field name="name">Asignaturas</field>
+        <field name="res_model">slide.channel</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="domain">[('tipo_curso', '=', 'asignatura')]</field>
+        <field name="context">{'default_tipo_curso': 'asignatura', 'create': False}</field> <!-- Docente Readonly -->
+        <field name="view_ids" eval="[(5, 0, 0),
+            (0, 0, {'view_mode': 'kanban', 'view_id': ref('elearning_universidad.view_slide_channel_kanban_readonly')}),
+            (0, 0, {'view_mode': 'list', 'view_id': ref('elearning_universidad.view_slide_channel_tree_readonly')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('website_slides.view_slide_channel_form')})]"/>
+    </record>
+
+    <!-- 
+        =================================================================
         ACTIONS SERVER (DISPATCHERS) - LÓGICA DE UI POR ROL
         ================================================================= 
     -->
@@ -83,34 +164,14 @@ action = action_data
 user = env.user
 can_create = user.has_group('elearning_universidad.grupo_administrador_universidad')
 
-search_domain = [('tipo_curso', '=', 'microcredencial')]
-
 if can_create:
-    views = [
-        (env.ref('website_slides.slide_channel_view_kanban').id, 'kanban'),
-        (env.ref('elearning_universidad.view_slide_channel_tree_university_admin').id, 'list'),
-        (env.ref('website_slides.view_slide_channel_form').id, 'form')
-    ]
+    action = env.ref('elearning_universidad.act_window_micro_full').sudo().read()[0]
 else:
-    # FILTRO UI: Solo mis asignaciones para limpiar la vista lista
-    # (El dominio de seguridad subyacente sigue garantizando lectura del todo si fuera necesario)
-    search_domain += ['|', ('director_academico_ids', 'in', user.id), ('personal_docente_ids', 'in', user.id)]
-    
-    views = [
-        (env.ref('elearning_universidad.view_slide_channel_kanban_readonly').id, 'kanban'),
-        (env.ref('elearning_universidad.view_slide_channel_tree_readonly').id, 'list'),
-        (env.ref('website_slides.view_slide_channel_form').id, 'form')
-    ]
-
-action = {
-    'name': 'Microcredenciales',
-    'type': 'ir.actions.act_window',
-    'res_model': 'slide.channel',
-    'view_mode': 'kanban,list,form',
-    'views': views,
-    'domain': search_domain,
-    'context': {'default_tipo_curso': 'microcredencial'},
-}
+    action = env.ref('elearning_universidad.act_window_micro_readonly').sudo().read()[0]
+    # Inyectar dominio dinámico para docentes/directores
+    # Nota: Combinamos manualmente el dominio base [('tipo_curso',...)] con el de permisos
+    # AND Implícito: [A, B] = A AND B
+    action['domain'] = [('tipo_curso', '=', 'microcredencial'), '|', ('director_academico_ids', 'in', user.id), ('personal_docente_ids', 'in', user.id)]
         </field>
     </record>
 
@@ -124,33 +185,12 @@ action = {
 user = env.user
 can_create = user.has_group('elearning_universidad.grupo_administrador_universidad')
 
-search_domain = [('tipo_curso', '=', 'master')]
-
 if can_create:
-    views = [
-        (env.ref('website_slides.slide_channel_view_kanban').id, 'kanban'),
-        (env.ref('elearning_universidad.view_slide_channel_tree_university_admin').id, 'list'),
-        (env.ref('website_slides.view_slide_channel_form').id, 'form')
-    ]
+    action = env.ref('elearning_universidad.act_window_master_full').sudo().read()[0]
 else:
-    # FILTRO UI: Solo mis asignaciones
-    search_domain += ['|', ('director_academico_ids', 'in', user.id), ('personal_docente_ids', 'in', user.id)]
-
-    views = [
-        (env.ref('elearning_universidad.view_slide_channel_kanban_readonly').id, 'kanban'),
-        (env.ref('elearning_universidad.view_slide_channel_tree_readonly').id, 'list'),
-        (env.ref('website_slides.view_slide_channel_form').id, 'form')
-    ]
-
-action = {
-    'name': 'Masters',
-    'type': 'ir.actions.act_window',
-    'res_model': 'slide.channel',
-    'view_mode': 'kanban,list,form',
-    'views': views,
-    'domain': search_domain,
-    'context': {'default_tipo_curso': 'master'},
-}
+    action = env.ref('elearning_universidad.act_window_master_readonly').sudo().read()[0]
+    # Inyectar dominio dinámico para docentes
+    action['domain'] = [('tipo_curso', '=', 'master'), '|', ('director_academico_ids', 'in', user.id), ('personal_docente_ids', 'in', user.id)]
         </field>
     </record>
 
@@ -165,33 +205,12 @@ user = env.user
 # Asignaturas: Tanto Admin como Director pueden crear
 can_create = user.has_group('elearning_universidad.grupo_administrador_universidad') or user.has_group('elearning_universidad.grupo_director_academico')
 
-search_domain = [('tipo_curso', '=', 'asignatura')]
-
 if can_create:
-    views = [
-        (env.ref('website_slides.slide_channel_view_kanban').id, 'kanban'),
-        (env.ref('elearning_universidad.view_slide_channel_tree_university_admin').id, 'list'),
-        (env.ref('website_slides.view_slide_channel_form').id, 'form')
-    ]
+    action = env.ref('elearning_universidad.act_window_asignatura_full').sudo().read()[0]
 else:
-    # Docente cae aquí -> Readonly + Filtro UI
-    search_domain += ['|', ('director_academico_ids', 'in', user.id), ('personal_docente_ids', 'in', user.id)]
-    
-    views = [
-        (env.ref('elearning_universidad.view_slide_channel_kanban_readonly').id, 'kanban'),
-        (env.ref('elearning_universidad.view_slide_channel_tree_readonly').id, 'list'),
-        (env.ref('website_slides.view_slide_channel_form').id, 'form')
-    ]
-
-action = {
-    'name': 'Asignaturas',
-    'type': 'ir.actions.act_window',
-    'res_model': 'slide.channel',
-    'view_mode': 'kanban,list,form',
-    'views': views,
-    'domain': search_domain,
-    'context': {'default_tipo_curso': 'asignatura'},
-}
+    action = env.ref('elearning_universidad.act_window_asignatura_readonly').sudo().read()[0]
+    # Inyectar dominio dinámico para docentes
+    action['domain'] = [('tipo_curso', '=', 'asignatura'), '|', ('director_academico_ids', 'in', user.id), ('personal_docente_ids', 'in', user.id)]
         </field>
     </record>
 

@@ -89,30 +89,84 @@ class Slide(models.Model):
     @api.model
     def get_view(self, view_id=None, view_type='form', **options):
         """ 
-        Sobrescribe la definición de la vista para ocultar la opción 'Asignatura' (sub_course)
-        del selector de categorías en la vista estándar de creación de contenido.
+        Sobrescribe la vista para filtrar dinámicamente los tipos de contenido.
+        ESTRATEGIA DE SEPARACIÓN ESTRICTA:
+        1. Por defecto: Ocultar 'Asignatura' (sub_course) y 'Certificación'.
+        2. Excepción Master: Si el contexto trae 'force_master_content=True', 
+           entonces MOSTRAR 'Asignatura' y OCULTAR todo lo demás.
         """
         res = super().get_view(view_id=view_id, view_type=view_type, **options)
         
-        # Solo aplicamos el filtro en la vista FORM y si NO estamos en el contexto automático
-        if view_type == 'form' and 'fields' in res and 'slide_category' in res['fields']:
-            if not self.env.context.get('default_slide_category') == 'sub_course':
-                selection = res['fields']['slide_category']['selection']
-                res['fields']['slide_category']['selection'] = [
-                    option for option in selection if option[0] not in ['sub_course', 'certification']
-                ]
+        # Aplicamos el filtro en FORM, TREE y SEARCH (para mayor seguridad)
+        if view_type in ['form', 'tree', 'list', 'search'] and 'fields' in res and 'slide_category' in res['fields']:
+            selection = res['fields']['slide_category']['selection']
+            force_master = self.env.context.get('force_master_content')
+
+            if force_master:
+                # MODO MASTER (Botón "Agregar Asignatura"):
+                # Solo permitimos 'Asignatura'
+                selection = [opt for opt in selection if opt[0] == 'sub_course']
+                # Opcional: Podríamos intentar hacer el campo readonly aquí si fuera necesario, 
+                # pero mejor confiamos en el default del botón.
+            else:
+                # MODO ESTÁNDAR (Lista normal, Botón "Agregar Contenido"):
+                # Ocultamos 'Asignatura' y 'Certificación'
+                selection = [opt for opt in selection if opt[0] not in ['sub_course', 'certification']]
+
+            res['fields']['slide_category']['selection'] = selection
+                
         return res
+
+    def action_open_add_asignatura(self, *args):
+        """ 
+        Acción llamada desde el botón 'Agregar Asignatura' en la lista de contenidos (slide_ids).
+        Se define aquí porque el botón está dentro del control del One2many (slide.slide).
+        Recupera el canal padre del contexto 'default_channel_id'.
+        """
+        channel_id = self.env.context.get('default_channel_id') or self.env.context.get('active_id')
+        
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Agregar Asignatura',
+            'res_model': 'slide.slide',
+            'view_mode': 'form',
+            'view_id': self.env.ref('website_slides.view_slide_slide_form_wo_channel_id').id,
+            'target': 'new',
+            'context': {
+                'default_channel_id': channel_id,
+                'default_slide_category': 'sub_course',
+                'default_is_category': False,
+                'force_master_content': True, # Permite que fields_get muestre 'sub_course'
+            }
+        }
 
     @api.model
     def fields_get(self, allfields=None, attributes=None):
+        """
+        Definición global de campos. 
+        Por defecto ocultamos 'sub_course' y 'certification'.
+        Pero si el contexto 'force_master_content' está activo, permitimos 'sub_course'.
+        """
         res = super().fields_get(allfields, attributes)
         if 'slide_category' in res and 'selection' in res['slide_category']:
-            # Estrategia de defensa en profundidad: Filtrar también aquí si no venimos del contexto autorizado via 'default_slide_category'
-             if not self.env.context.get('default_slide_category') == 'sub_course':
-                selection = res['slide_category']['selection']
-                res['slide_category']['selection'] = [
-                    option for option in selection if option[0] not in ['sub_course', 'certification']
-                ]
+            selection = res['slide_category']['selection']
+            
+            # Check context for Master override
+            force_master = self.env.context.get('force_master_content')
+            
+            if force_master:
+                 # Si forzamos contenido de Master, SOLO permitimos sub_course (y eliminamos el resto si se desea, 
+                 # pero aquí lo importante es NO eliminar sub_course si lo vamos a usar).
+                 # Para simplificar y no romper nada más, solo eliminamos certification.
+                 # La logica de "Solo Asignatura" ya se aplica en get_view para la UI.
+                 allowed_remove = ['certification']
+            else:
+                 # Por defecto ocultamos ambos
+                 allowed_remove = ['sub_course', 'certification']
+
+            res['slide_category']['selection'] = [
+                option for option in selection if option[0] not in allowed_remove
+            ]
         return res
 
     _sql_constraints = [

@@ -59,12 +59,6 @@
                  
                  <field name="canal_tipo_curso" invisible="1"/>
                  
-                 <field name="completion_time"  
-                        string="Duración" 
-                        widget="float_time"       
-                        invisible="slide_category != 'sub_course'"
-                        decoration-danger="completion_time == 0" 
-                        groups="elearning_universidad.grupo_administrador_universidad,elearning_universidad.grupo_director_academico"/>
             </xpath>
 
             <!-- Ocultar pestañas de Recursos y Cuestionario (Simplificación UI) -->
@@ -101,39 +95,5 @@
         </field>
     </record>
 
-    <!-- Vista Simplificada para "Agregar Asignatura" desde Master -->
-    <record id="view_slide_slide_form_add_asignatura" model="ir.ui.view">
-        <field name="name">slide.slide.form.add.asignatura</field>
-        <field name="model">slide.slide</field>
-        <field name="arch" type="xml">
-            <form string="Agregar Asignatura">
-                <sheet>
-                    <group>
-                        <!-- Campos Ocultos Obligatorios -->
-                        <field name="name" invisible="1"/>
-                        <field name="slide_category" invisible="1"/>
-                        <field name="is_category" invisible="1"/>
-                        <field name="channel_id" invisible="1"/>
-                        <field name="source_type" invisible="1"/>
-
-                        <!-- Selección de Asignatura -->
-                        <div class="alert alert-info" role="alert" colspan="2">
-                            Seleccione la Asignatura que desea vincular. <b>Importante:</b> La asignatura debe tener una <u>Duración > 0 horas</u> para computar en la nota del Master.
-                        </div>
-                        <field name="asignatura_id" 
-                               options="{'no_quick_create': True}" 
-                               context="{'default_tipo_curso': 'asignatura', 'avoid_slide_sync': True, 'locked_master_context': True, 'hide_workflow_buttons': True}"
-                               domain="[('tipo_curso', '=', 'asignatura'), ('master_id', '=', False)]"
-                               required="1"/>
-                        
-                        <!-- REUTILIZACIÓN: Controles de Publicación ELIMINADOS por solicitud -->
-                        <field name="active" invisible="1"/>
-                        <field name="is_published" invisible="1"/>
-                        <field name="fecha_programada" invisible="1"/>
-                    </group>
-                </sheet>
-            </form>
-        </field>
-    </record>
 
 </odoo>

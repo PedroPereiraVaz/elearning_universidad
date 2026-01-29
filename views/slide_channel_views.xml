@@ -250,46 +250,47 @@
 
             <!-- Ocultar lista de diapositivas original en Masters -->
             <xpath expr="//field[@name='slide_ids']" position="attributes">
+                <attribute name="context">{'default_channel_id': id, 'form_view_ref' : 'website_slides.view_slide_slide_form_wo_channel_id', 'default_parent_course_type': tipo_curso}</attribute>
                 <attribute name="invisible">tipo_curso == 'master'</attribute>
             </xpath>
-
-            <!-- Insertar campo proxy para contenido de Masters -->
+            
+            <!-- LOGICA DE MASTER: Botón Exclusivo + Lista Restringida -->
             <xpath expr="//field[@name='slide_ids']" position="after">
-                <div class="mb-3" invisible="tipo_curso != 'master'">
-                    <button name="action_open_add_asignatura" 
-                            string="Agregar Asignatura" 
-                            type="object" 
-                            class="btn btn-primary"
-                            icon="fa-plus-circle"
-                            help="Guarda el Master y abre el formulario para vincular una asignatura."/>
-                </div>
-                <field name="slide_ids_master" 
+                <!-- Botón "Agregar Asignatura" INTEGRADO EN LA LISTA (sin botón externo) -->
+                
+                <!-- Lista para Masters: Solo permite Sections y visualizar Asignaturas -->
+                <field name="slide_ids" 
                        invisible="tipo_curso != 'master'" 
                        widget="slide_category_one2many" 
                        mode="list" 
                        context="{'default_channel_id': id, 'default_is_category': True, 'form_view_ref': 'elearning_universidad.view_slide_slide_form_university_simple'}">
-                     <list decoration-bf="is_category" editable="bottom">
+                     <list decoration-bf="is_category" editable="bottom" delete="1">
                         <field name="sequence" widget="handle"/>
                         <field name="name"/>
                         <field name="slide_category" invisible="slide_category == 'category'"/>
                         <field name="completion_time" widget="float_time" optional="show"/>
                         <field name="es_evaluable" optional="show" force_save="1"/>
-                        <field name="is_preview" string="Preview"/>
-                        <field name="is_published" string="Published"/>
+                        <field name="is_preview" string="Preview" optional="hide"/>
+                        <field name="is_published" string="Published" optional="hide"/>
                         <field name="is_category" column_invisible="True"/>
-                        <!-- Campos técnicos requeridos por el widget o validaciones -->
-                        <field name="active" column_invisible="True"/>
                         <field name="channel_id" column_invisible="True"/>
-                        <field name="asignatura_id" column_invisible="True"/>
-                        <field name="question_ids" column_invisible="True"/>
-                        <field name="source_type" column_invisible="True"/>
+                        <field name="asignatura_id" column_invisible="True"/> 
+                        <!-- Nota: asignatura_id visible para ver qué vinculamos, o invisible si preferimos solo 'name' -->
+                        
                         <control>
+                            <!-- Botón personalizado que añade Asignatura - "Se comporta igual que Agregar Contenido" -->
+                            <button name="action_open_add_asignatura" 
+                                    string="Agregar Asignatura" 
+                                    type="object" 
+                                    context="{'default_slide_category': 'sub_course', 'force_master_content': True}"/>
+                                    
+                            <!-- SOLO permitimos agregar Secciones por la vía rápida -->
                             <create name="add_slide_section" string="Agregar Sección" context="{'default_is_category': True}"/>
                         </control>
                      </list>
                 </field>
-            </xpath> 
-
+            </xpath>
+            
             <!-- Ocultar botón 'Add Certification' nativo de website_slides_survey -->
             <xpath expr="//field[@name='slide_ids']//create[@name='add_slide_certificate']" position="replace">
             </xpath>

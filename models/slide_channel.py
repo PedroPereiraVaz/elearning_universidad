@@ -358,28 +358,6 @@ class CanalSlide(models.Model):
             if slides_huerfanos:
                 slides_huerfanos.unlink()
 
-    def action_open_add_asignatura(self):
-        """ 
-        Acción llamada por botón 'Agregar Asignatura' en la vista de lista de contenidos del Master.
-        Al ser un botón type='object', Odoo hace AUTOSAVE del registro Master antes de ejecutar este método.
-        Esto previene el error de 'Virtual ID' (Owl Error) al crear relaciones One2many antes de que el padre exista.
-        Luego, abrimos el formulario de creación de slide con los contextos necesarios.
-        """
-        self.ensure_one()
-        return {
-            'type': 'ir.actions.act_window',
-            'name': 'Agregar Asignatura',
-            'res_model': 'slide.slide',
-            'view_mode': 'form',
-            'view_id': self.env.ref('elearning_universidad.view_slide_slide_form_add_asignatura').id,
-            'target': 'new',
-            'context': {
-                'default_channel_id': self.id,
-                'default_slide_category': 'sub_course',
-                'default_is_category': False,
-            }
-        }
-
     # --- Acciones de Workflow (Estados) con Validaciones ---
 
     def _format_notification_html(self, titulo, mensaje, tipo='info'):
