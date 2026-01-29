@@ -99,7 +99,7 @@ class Slide(models.Model):
             if not self.env.context.get('default_slide_category') == 'sub_course':
                 selection = res['fields']['slide_category']['selection']
                 res['fields']['slide_category']['selection'] = [
-                    option for option in selection if option[0] != 'sub_course'
+                    option for option in selection if option[0] not in ['sub_course', 'certification']
                 ]
         return res
 
@@ -111,7 +111,7 @@ class Slide(models.Model):
              if not self.env.context.get('default_slide_category') == 'sub_course':
                 selection = res['slide_category']['selection']
                 res['slide_category']['selection'] = [
-                    option for option in selection if option[0] != 'sub_course'
+                    option for option in selection if option[0] not in ['sub_course', 'certification']
                 ]
         return res
 
