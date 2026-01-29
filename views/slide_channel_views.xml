@@ -176,7 +176,7 @@
                          <field name="personal_docente_ids" widget="many2many_tags" 
                                 invisible="tipo_curso == 'master'"
                                 readonly="not can_manage_members"
-                                required="tipo_curso in ['asignatura', 'microcredencial']"/>
+                                required="tipo_curso == 'asignatura'"/>
                          <field name="upload_limit_mb" readonly="not can_manage_config"/>
                      </group>
                      <group>

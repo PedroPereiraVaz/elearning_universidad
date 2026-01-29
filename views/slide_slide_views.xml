@@ -59,9 +59,11 @@
                  
                  <field name="canal_tipo_curso" invisible="1"/>
                  
-                 <field name="asignatura_duracion" 
+                 <field name="completion_time"  
+                        string="Duración" 
+                        widget="float_time"       
                         invisible="slide_category != 'sub_course'"
-                        decoration-danger="asignatura_duracion == 0"
+                        decoration-danger="completion_time == 0" 
                         groups="elearning_universidad.grupo_administrador_universidad,elearning_universidad.grupo_director_academico"/>
             </xpath>
 

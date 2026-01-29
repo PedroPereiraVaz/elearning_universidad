@@ -9,7 +9,7 @@ class SlideSlidePartner(models.Model):
         string='Inscripción en Curso',
         compute='_compute_channel_partner_id',
         store=True,
-        ondelete='restrict' # Si hay notas academicas asociadas al curso, impedir que se elimine el curso sin eliminar explicitamente las notas previamente
+        ondelete='set null'# Evitamos que el alumno pierda su historial en caso de que se borre el curso o se desmatricule.
     )
 
     estado_evaluacion = fields.Selection([
@@ -385,7 +385,7 @@ class SlideChannelPartner(models.Model):
     def action_issue_university_degree(self):
         """ Emisión manual de títulos universitarios """
         self.ensure_one()
-        if self.estado_nota != 'evaluado':
+        if self.estado_nota != 'pendiente_certificar':
             raise ValidationError("No se puede emitir un título si el acta no está en estado 'Evaluado'.")
         
         if self.nota_final < 5.0:
