@@ -5,11 +5,11 @@
         <!-- Insertamos DENTRO de la categoría COMÚN (Segunda Fila, junto a Seguridad) -->
         <xpath expr="//div[@id='portal_common_category']" position="inside">
             <t t-call="portal.portal_docs_entry">
-                <t t-set="title">Sus calificaciones</t>
+                <t t-set="title">Tus calificaciones</t>
                 <t t-set="url" t-value="'/my/grades'"/>
                 <t t-set="placeholder_count" t-value="'grades_count'"/>
                 <t t-set="icon" t-value="'/elearning_universidad/static/src/img/grades.svg'"/>
-                <t t-set="text">Ver sus calificaciones</t>
+                <t t-set="text">Ver tus calificaciones</t>
             </t>
         </xpath>
     </template>
