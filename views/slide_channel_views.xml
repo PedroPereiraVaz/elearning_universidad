@@ -50,7 +50,7 @@
                 <field name="name"/>
                 <field name="tipo_curso"/>
                 <field name="director_academico_ids" widget="many2many_tags" optional="show"/>
-                <field name="duracion_horas" sum="Total Horas" optional="hide"/>
+                <field name="total_time" sum="Total Horas" optional="hide" widget="float_time"/>
                 <field name="precio_curso" widget="monetary" optional="show"
                        groups="elearning_universidad.grupo_administrador_universidad"/>
                 <field name="estado_universidad" widget="badge" decoration-info="estado_universidad == 'presentado'" decoration-warning="estado_universidad == 'subsanacion'" decoration-success="estado_universidad == 'publicado'"/>
@@ -272,6 +272,7 @@
                         <field name="sequence" widget="handle"/>
                         <field name="name"/>
                         <field name="slide_category" invisible="slide_category == 'category'"/>
+                        <field name="completion_time" widget="float_time" optional="show"/>
                         <field name="es_evaluable" optional="show" force_save="1"/>
                         <field name="is_preview" string="Preview"/>
                         <field name="is_published" string="Published"/>

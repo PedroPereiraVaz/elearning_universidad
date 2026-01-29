@@ -198,15 +198,7 @@ class CanalSlide(models.Model):
         domain=[('tipo_curso', '=', 'asignatura')]
     )
 
-    # --- Duración y Costes ---
-    duracion_horas = fields.Float(
-        string='Duración (Horas)', 
-        compute='_compute_duracion_horas', 
-        store=True, 
-        readonly=False,
-        recursive=True,
-        help="Manual en Asignaturas. Automático en Masters (suma de asignaturas) y Microcredenciales (suma de contenidos)."
-    )
+    # --- Costes ---
 
     precio_curso = fields.Float(
         string='Precio del Curso', 
@@ -270,14 +262,15 @@ class CanalSlide(models.Model):
             record.all_personal_docente_ids = docentes
 
     # --- Computes de Lógica Académica ---
-    @api.depends('tipo_curso', 'asignatura_ids.duracion_horas', 'slide_ids.completion_time')
-    def _compute_duracion_horas(self):
-        for registro in self:
-            if registro.tipo_curso == 'master':
-                registro.duracion_horas = sum(registro.asignatura_ids.mapped('duracion_horas'))
-            elif registro.tipo_curso == 'microcredencial':
-                registro.duracion_horas = sum(registro.slide_ids.mapped('completion_time'))
-            # Para asignaturas no hacemos nada para respetar el valor manual
+    @api.depends('slide_ids.completion_time', 'master_id.slide_ids.completion_time', 'tipo_curso')
+    def _compute_total_time(self):
+        super()._compute_total_time()
+        for record in self:
+            if record.tipo_curso == 'asignatura' and record.master_id:
+                # La duración de la asignatura es la que se define en su slide representativo dentro del Master
+                slide_en_master = record.master_id.slide_ids.filtered(lambda s: s.asignatura_id == record)
+                if slide_en_master:
+                    record.total_time = sum(slide_en_master.mapped('completion_time'))
 
     # --- Sincronización con Productos de Odoo ---
     def _sincronizar_producto_universidad(self):
@@ -475,7 +468,7 @@ class CanalSlide(models.Model):
                     raise ValidationError(f"El curso '{record.name}' emite título pero no tiene seleccionada ninguna Plantilla.")
 
                 # 5. Duración de Asignatura (Requisito Académico)
-                if record.tipo_curso == 'asignatura' and record.duracion_horas <= 0:
+                if record.tipo_curso == 'asignatura' and record.total_time <= 0:
                     raise ValidationError(f"La asignatura '{record.name}' debe tener una duración mayor a 0 horas para ser publicada.")
 
     @api.onchange('master_id')

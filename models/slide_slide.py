@@ -24,11 +24,6 @@ class Slide(models.Model):
         store=True
     )
     
-    asignatura_duracion = fields.Float(
-        related='asignatura_id.duracion_horas',
-        string="Duración Asignatura",
-        readonly=False
-    )
 
     fecha_programada = fields.Datetime(
         string='Publicación Programada', 

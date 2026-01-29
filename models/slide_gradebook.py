@@ -270,7 +270,7 @@ class SlideChannelPartner(models.Model):
         'nota_manual',
         'evaluaciones_ids.nota_evaluacion', 
         'evaluaciones_ids.estado_evaluacion',
-        'channel_id.asignatura_ids.duracion_horas'
+        'channel_id.asignatura_ids.total_time'
     )
     def _compute_nota_academica(self):
         # 1. Separamos registros manuales (no se calculan)
@@ -320,7 +320,7 @@ class SlideChannelPartner(models.Model):
         for master in all_masters:
              asigs = master.asignatura_ids
              # Filter asignaturas with duration > 0 to avoid division by zero issues in weights (though logical check handles total)
-             total_horas = sum(asigs.mapped('duracion_horas'))
+             total_horas = sum(asigs.mapped('total_time'))
              master_data_cache[master.id] = {
                  'asignaturas': asigs,
                  'total_horas': curr_total_horas if (curr_total_horas := total_horas) > 0 else 0
@@ -345,7 +345,7 @@ class SlideChannelPartner(models.Model):
                 # Media Ponderada por Horas
                 for asig in asignaturas:
                     nota_asig = scores_map.get((record.partner_id.id, asig.id), 0.0)
-                    peso = asig.duracion_horas / total_horas_master
+                    peso = asig.total_time / total_horas_master
                     nota_acumulada += nota_asig * peso
             else:
                 # Media Aritmética Simple (Fallback si no hay horas definidas)
