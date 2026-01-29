@@ -348,7 +348,6 @@ class CanalSlide(models.Model):
             
             # Limpieza: Si cambió de master o dejó de ser asignatura (improbable por inmutabilidad),
             # deberíamos borrar los slides antiguos que apunten a este curso pero estén en otros masters.
-            # (Opcional, pero recomendado para consistencia)
             slides_huerfanos = Slide.search([
                 ('asignatura_id', '=', curso.id),
                 ('slide_category', '=', 'sub_course')
@@ -359,13 +358,11 @@ class CanalSlide(models.Model):
             if slides_huerfanos:
                 slides_huerfanos.unlink()
 
-
     def action_open_add_asignatura(self):
         """ 
         Acción llamada por botón 'Agregar Asignatura' en la vista de lista de contenidos del Master.
         Al ser un botón type='object', Odoo hace AUTOSAVE del registro Master antes de ejecutar este método.
         Esto previene el error de 'Virtual ID' (Owl Error) al crear relaciones One2many antes de que el padre exista.
-        
         Luego, abrimos el formulario de creación de slide con los contextos necesarios.
         """
         self.ensure_one()
@@ -382,8 +379,6 @@ class CanalSlide(models.Model):
                 'default_is_category': False,
             }
         }
-
-
 
     # --- Acciones de Workflow (Estados) con Validaciones ---
 
@@ -444,8 +439,6 @@ class CanalSlide(models.Model):
     def _sincronizar_seguidores_staff(self):
         """ 
         Agrega a Directores y Docentes como seguidores del curso (Chatter)
-        Esto permite que reciban notificaciones nativas de Odoo por cambios de estado o contenido,
-        sin necesidad de código personalizado propenso a errores.
         """
         for record in self:
             partners = record.director_academico_ids.mapped('partner_id') | record.personal_docente_ids.mapped('partner_id')
@@ -657,7 +650,7 @@ class CanalSlide(models.Model):
         for curso in cursos:
             curso._sincronizar_producto_universidad()
             if not self.env.context.get('avoid_slide_sync'):
-                curso._sincronizar_slide_master() # Automagically create slide in Master
+                curso._sincronizar_slide_master()
             
             # Sincronización inicial de seguidores (Directores/Docentes)
             curso._sincronizar_seguidores_staff()
@@ -696,6 +689,12 @@ class CanalSlide(models.Model):
         else:
             old_staff = {}
 
+        # Capture asginaturas antiguas para propagacion de bajas o altar (Membership Propagation)
+        if 'asignatura_ids' in vals:
+            old_asignaturas = {rec.id: rec.asignatura_ids for rec in self}
+        else:
+            old_asignaturas = {}
+
         # 1. Bloqueo de Tipo (INMUTABLE)
         if 'tipo_curso' in vals:
             for record in self:
@@ -719,7 +718,7 @@ class CanalSlide(models.Model):
                     # Ni admin ni director
                     raise AccessError(_("No tiene permiso para publicar cursos."))
 
-        # 3. Bloqueo de Estructura (Director/Docente solo tocan contenido y alumnos)
+        # 3. Bloqueo de Estructura (Director/Docente solo tocan contenido)
         campos_estructurales = ['name', 'tipo_curso', 'precio_curso', 'promoted_tag_ids']
         if any(campo in vals for campo in campos_estructurales):
              if not is_admin:
@@ -727,31 +726,17 @@ class CanalSlide(models.Model):
                  if is_director:
                       for r in self:
                            if r.tipo_curso != 'asignatura':
-                               raise AccessError(_("No puede editar cursos que no son asignaturas."))
-                           # No requerimos asignación estricta para editar nombre? 
-                           # El usuario pidió "solo directores asignados pueden ver esos botones y usarlos".
-                           # Asumimos que para editar estructura también.
+                               raise AccessError(_("No puede editar este curso."))
                            if user not in r.director_academico_ids and r.director_academico_ids:
                                raise AccessError(_("Solo el Director Académico asignado puede editar esta Asignatura."))
                            
                            if 'precio_curso' in vals:
                                raise AccessError(_("No puede modificar el precio."))
                  else:
-                     raise AccessError(_("No tiene permiso para modificar propiedades estructurales."))
-
-        for record in self:
-            # es_admin = self.env.user.has_group('elearning_universidad.grupo_administrador_universidad') # Ya calculado arriba
-            # Si el curso está presentado o programado, solo el admin puede tocarlo
-            if record.estado_universidad in ['presentado', 'programado', 'publicado'] and not is_admin:
-                # Permitimos que website_slides actualice campos técnicos pero no manuales
-                # ... Lógica existente ...
-                campos_prohibidos = [f for f in vals.keys() if f not in ['is_published', 'message_main_attachment_id', 'website_published']]
-                if campos_prohibidos:
-                     # Refinamos la excepción para ser más amigables si es algo interno
-                     pass 
-                     # Mantenemos la lógica original de validación de estado, pero reforzada por la de arriba.
+                     raise AccessError(_("No tiene permiso para modificar estas propiedades."))
 
         res = super().write(vals)
+        
         # Sincronización de producto si cambian datos clave
         if any(campo in vals for campo in ['name', 'precio_curso', 'enroll', 'tipo_curso']):
             self.filtered(lambda c: c.tipo_curso in ['master', 'microcredencial'])._sincronizar_producto_universidad()
@@ -761,21 +746,26 @@ class CanalSlide(models.Model):
              if not self.env.context.get('avoid_slide_sync'):
                  self._sincronizar_slide_master()
 
-        # Propagación de matrícula
+        # Propagación de matrícula (Add & Remove)
         if 'asignatura_ids' in vals:
             for master in self.filtered(lambda c: c.tipo_curso == 'master'):
-                novedades = master.asignatura_ids
+                current_asignaturas = master.asignatura_ids
+                previous_asignaturas = old_asignaturas.get(master.id, self.env['slide.channel'])
+                
                 socios = master.channel_partner_ids.mapped('partner_id')
-                if socios and novedades:
-                    novedades.sudo()._action_add_members(socios)
-        
-        # Propagación de Directores Académicos (Master -> Asignaturas)
-        if 'director_academico_ids' in vals:
-            for master in self.filtered(lambda c: c.tipo_curso == 'master'):
-                 if master.asignatura_ids:
-                     # Sincronizamos los directores del master a sus asignaturas
-                     # (La lógica de sincronización ya la maneja slide.slide)
-                     pass
+                # Si el Master no tiene alumnos, no hay nada que propagar
+                if not socios:
+                    continue
+
+                # 1. Nuevas Asignaturas -> Matricular
+                new_asignaturas = current_asignaturas - previous_asignaturas
+                if new_asignaturas:
+                    new_asignaturas.sudo()._action_add_members(socios)
+                
+                # 2. Asignaturas Eliminadas -> Desmatricular
+                removed_asignaturas = previous_asignaturas - current_asignaturas
+                if removed_asignaturas:
+                    removed_asignaturas.sudo()._remove_membership(socios.ids)
 
         # Sincronización de SEGUIDORES (Nativo Odoo)
         if old_staff:
@@ -831,7 +821,7 @@ class CanalSlide(models.Model):
 
     # --- Propagación de Matrículas (Altas y Bajas) ---
     def _action_add_members(self, target_partners, **kwargs):
-        """ Al unirse a un Master o Asignatura, crea registros de seguimiento para contenidos evaluables """
+        """ Al unirse a un Master, crea registros de seguimiento para contenidos evaluables """
         res = super()._action_add_members(target_partners, **kwargs)
         for curso in self:
             # 1. Proactividad: Asegurar registros de seguimiento para contenidos evaluables
@@ -891,7 +881,3 @@ class CanalSlide(models.Model):
                 'default_gradebook_master_id': target_master_id
             }
         }
-
-
-
-
