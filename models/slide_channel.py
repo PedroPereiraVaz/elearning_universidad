@@ -274,24 +274,41 @@ class CanalSlide(models.Model):
 
     # --- Sincronización con Productos de Odoo ---
     def _sincronizar_producto_universidad(self):
-        """ Crea o actualiza el producto vinculado si el curso es de pago """
+        """ 
+        Logica de mantenimiento automático del producto vinculado. Asegura relación 1:1 entre Curso de Pago y Producto.
+        """
         for curso in self:
-            if curso.enroll == 'payment' and curso.tipo_curso in ['master', 'microcredencial']:
-                valores_producto = {
-                    'name': curso.name,
-                    'list_price': curso.precio_curso,
-                    'type': 'service',
-                    'service_tracking': 'course',
-                    'is_published': True,
-                }
-                if curso.product_id:
-                    curso.product_id.write(valores_producto)
+            if curso.enroll == 'payment' and curso.precio_curso > 0 and curso.tipo_curso in ['master', 'microcredencial']:
+                if not curso.product_id:
+                    # CREAR PRODUCTO
+                    product = self.env['product.product'].sudo().create({
+                        'name': curso.name,
+                        'list_price': curso.precio_curso,
+                        'type': 'service',
+                        'service_tracking': 'course',
+                        'invoice_policy': 'order',
+                        'is_published': True,
+                        'uom_id': self.env.ref('uom.product_uom_unit').id,
+                        'uom_po_id': self.env.ref('uom.product_uom_unit').id,
+                    })
+                    curso.sudo().write({'product_id': product.id})
                 else:
-                    producto = self.env['product.product'].create(valores_producto)
-                    curso.product_id = producto.id
+                    # ACTUALIZAR PRODUCTO
+                    vals_prod = {}
+                    if curso.product_id.name != curso.name:
+                        vals_prod['name'] = curso.name
+                    if curso.product_id.list_price != curso.precio_curso:
+                        vals_prod['list_price'] = curso.precio_curso
+                    if not curso.product_id.active:
+                        vals_prod['active'] = True # Reactivar si estaba archivado
+                    
+                    if vals_prod:
+                        curso.product_id.sudo().write(vals_prod)
+            
             elif curso.enroll != 'payment' and curso.product_id:
-                # Si pasa a gratuito o invite, archivamos el producto para limpiar
-                curso.product_id.active = False
+                # ARCHIVAR PRODUCTO (Si deja de ser de pago)
+                if curso.product_id.active:
+                    curso.product_id.sudo().write({'active': False})
 
     def _sincronizar_slide_master(self):
         """ 
@@ -673,6 +690,12 @@ class CanalSlide(models.Model):
         user = self.env.user
         is_admin = user.has_group('elearning_universidad.grupo_administrador_universidad')
 
+        # Capturamos el estado previo de los staff para comparar (Logic for Unsubscribe)
+        if 'director_academico_ids' in vals or 'personal_docente_ids' in vals:
+            old_staff = {rec.id: (rec.director_academico_ids | rec.personal_docente_ids) for rec in self}
+        else:
+            old_staff = {}
+
         # 1. Bloqueo de Tipo (INMUTABLE)
         if 'tipo_curso' in vals:
             for record in self:
@@ -755,8 +778,23 @@ class CanalSlide(models.Model):
                      pass
 
         # Sincronización de SEGUIDORES (Nativo Odoo)
-        if any(campo in vals for campo in ['director_academico_ids', 'personal_docente_ids']):
-            self._sincronizar_seguidores_staff()
+        if old_staff:
+            for record in self:
+                current_staff = record.director_academico_ids | record.personal_docente_ids
+                previous_staff = old_staff.get(record.id, self.env['res.users'])
+                
+                # Nuevos seguidores
+                to_add = (current_staff - previous_staff).mapped('partner_id')
+                if to_add:
+                    record.message_subscribe(partner_ids=to_add.ids)
+                
+                # Eliminados (Unsubscribe)
+                to_remove = (previous_staff - current_staff).mapped('partner_id')
+                if to_remove:
+                    record.message_unsubscribe(partner_ids=to_remove.ids)
+        elif 'director_academico_ids' in vals or 'personal_docente_ids' in vals:
+             # Fallback por si old_staff estaba vacío pero es un create o similar (aunque esto es write)
+             self._sincronizar_seguidores_staff()
         
         return res
 
@@ -854,85 +892,6 @@ class CanalSlide(models.Model):
             }
         }
 
-    # --- Sync de Seguidores (Chatter) + Automatización de Producto ---
-    @api.model_create_multi
-    def create(self, vals_list):
-        records = super().create(vals_list)
-        for record in records:
-            # 1. Sync Seguidores
-            partners = (record.director_academico_ids | record.personal_docente_ids).mapped('partner_id')
-            if partners:
-                record.message_subscribe(partner_ids=partners.ids)
-            
-            # 2. Sync Producto (Si nace de pago)
-            if record.enroll == 'payment':
-                record._sync_course_product()
-                
-        return records
-
-    def write(self, vals):
-        # Capturamos el estado previo de los staff para comparar
-        if 'director_academico_ids' in vals or 'personal_docente_ids' in vals:
-            old_staff = {rec.id: (rec.director_academico_ids | rec.personal_docente_ids) for rec in self}
-        else:
-            old_staff = {}
-
-        res = super().write(vals)
-
-        # 1. Procesamos cambios de seguidores
-        if old_staff:
-            for record in self:
-                current_staff = record.director_academico_ids | record.personal_docente_ids
-                previous_staff = old_staff.get(record.id, self.env['res.users'])
-                
-                to_add = (current_staff - previous_staff).mapped('partner_id')
-                if to_add:
-                    record.message_subscribe(partner_ids=to_add.ids)
-                
-                to_remove = (previous_staff - current_staff).mapped('partner_id')
-                if to_remove:
-                    record.message_unsubscribe(partner_ids=to_remove.ids)
-        
-        # 2. Sincronización de Producto (Si cambiaron campos relevantes)
-        if any(f in vals for f in ['enroll', 'precio_curso', 'name']):
-            for record in self:
-                record._sync_course_product()
-
-        return res
-
-    def _sync_course_product(self):
-        """ Logica de mantenimiento automático del producto vinculado """
-        if self.enroll == 'payment' and self.precio_curso > 0:
-            if not self.product_id:
-                # CREAR PRODUCTO
-                product = self.env['product.product'].sudo().create({
-                    'name': self.name,
-                    'list_price': self.precio_curso,
-                    'type': 'service',
-                    'service_tracking': 'course',
-                    'invoice_policy': 'order',
-                    'is_published': True,
-                    'uom_id': self.env.ref('uom.product_uom_unit').id,
-                    'uom_po_id': self.env.ref('uom.product_uom_unit').id,
-                })
-                self.sudo().write({'product_id': product.id})
-            else:
-                # ACTUALIZAR PRODUCTO
-                vals = {}
-                if self.product_id.name != self.name:
-                    vals['name'] = self.name
-                if self.product_id.list_price != self.precio_curso:
-                    vals['list_price'] = self.precio_curso
-                if not self.product_id.active:
-                    vals['active'] = True # Reactivar si estaba archivado
-                
-                if vals:
-                    self.product_id.sudo().write(vals)
-        
-        elif self.enroll != 'payment' and self.product_id:
-            # ARCHIVAR PRODUCTO (Si deja de ser de pago)
-            if self.product_id.active:
-                self.product_id.sudo().write({'active': False})
 
 
 
