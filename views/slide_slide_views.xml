@@ -67,6 +67,14 @@
                         groups="elearning_universidad.grupo_administrador_universidad,elearning_universidad.grupo_director_academico"/>
             </xpath>
 
+            <!-- Ocultar pestañas de Recursos y Cuestionario (Simplificación UI) -->
+            <xpath expr="//page[@name='external_links']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <xpath expr="//page[@name='quiz']" position="attributes">
+                <attribute name="invisible">slide_category != 'quiz'</attribute>
+            </xpath>
+
         </field>
     </record>
 
