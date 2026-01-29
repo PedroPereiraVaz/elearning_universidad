@@ -138,32 +138,14 @@
     <!-- 5. Deshabilitar desuscribirse de Asignaturas -->
     <template id="course_join_university" inherit_id="website_slides.course_join">
         <xpath expr="//button[hasclass('o_wslides_js_channel_unsubscribe')]" position="replace">
-            <t t-if="channel.tipo_curso == 'asignatura'">
-                 <div class="d-flex align-items-center alert my-0 px-2 px-xl-3 bg-100 w-100 text-muted" title="Para desinscribirse, debe hacerlo desde el Master.">
-                    <t t-call="website_slides.slides_misc_user_image">
-                        <t t-set="img_class" t-value="'rounded-circle me-1'"/>
-                        <t t-set="img_style" t-value="'width: 1.4em; height: 1.4em;'"/>
-                    </t>
-                    <h6 class="d-flex flex-grow-1 my-0">Inscrito (Asignatura)</h6>
-                    <i class="fa fa-check text-success"/>
-                    <i class="fa fa-lock ms-2" title="Gestionado por el Master"/>
-                </div>
-            </t>
-            <t t-else="">
-                <button class="d-flex align-items-center alert my-0 px-2 px-xl-3 bg-100 w-100 o_wslides_js_channel_unsubscribe"
-                        t-att-data-channel-id="channel.id"
-                        t-att-data-is-follower="channel.message_is_follower"
-                        t-att-data-enroll="channel.enroll"
-                        t-att-data-visibility="channel.visibility">
-                    <t t-call="website_slides.slides_misc_user_image">
-                        <t t-set="img_class" t-value="'rounded-circle me-1'"/>
-                        <t t-set="img_style" t-value="'width: 1.4em; height: 1.4em;'"/>
-                    </t>
-                    <h6 class="d-flex flex-grow-1 my-0">Estás inscrito</h6>
-                    <i class="fa fa-check"/>
-                    <i class="fa fa-times"/>
-                </button>
-            </t>
+            <div class="d-flex align-items-center alert my-0 px-2 px-xl-3 bg-100 w-100 text-muted">
+                <t t-call="website_slides.slides_misc_user_image">
+                    <t t-set="img_class" t-value="'rounded-circle me-1'"/>
+                    <t t-set="img_style" t-value="'width: 1.4em; height: 1.4em;'"/>
+                </t>
+                <h6 class="d-flex flex-grow-1 my-0">Inscrito</h6>
+                <i class="fa fa-check text-success"/>
+            </div>
         </xpath>
     </template>
 
