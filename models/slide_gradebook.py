@@ -9,7 +9,7 @@ class SlideSlidePartner(models.Model):
         string='Inscripción en Curso',
         compute='_compute_channel_partner_id',
         store=True,
-        ondelete='cascade'
+        ondelete='restrict' # Si hay notas academicas asociadas al curso, impedir que se elimine el curso sin eliminar explicitamente las notas previamente
     )
 
     estado_evaluacion = fields.Selection([
@@ -122,9 +122,6 @@ class SlideChannelPartner(models.Model):
                     continue
             
             vals_filtrados.append(vals)
-            
-        if not vals_filtrados:
-            return self.env['slide.channel.partner'] # Retorno vacío si filtra todo
             
         if not vals_filtrados:
             return self.env['slide.channel.partner'] # Retorno vacío si filtra todo
