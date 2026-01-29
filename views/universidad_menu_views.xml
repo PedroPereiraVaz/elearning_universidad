@@ -228,68 +228,7 @@ else:
         <field name="domain">[('is_category', '=', False), ('slide_category', '!=', 'sub_course')]</field>
     </record>
 
-    <!-- Certificaciones -->
-    <!-- VISTAS READONLY PARA CERTIFICACIONES (Anti-Docente) -->
-    <record id="view_survey_kanban_certification_readonly" model="ir.ui.view">
-        <field name="name">survey.survey.kanban.certification.readonly</field>
-        <field name="model">survey.survey</field>
-        <field name="inherit_id" ref="survey.survey_survey_view_kanban"/>
-        <field name="mode">primary</field>
-        <field name="arch" type="xml">
-            <xpath expr="//kanban" position="attributes">
-                 <attribute name="create">false</attribute>
-            </xpath>
-        </field>
-    </record>
-    
-    <record id="view_survey_tree_certification_readonly" model="ir.ui.view">
-        <field name="name">survey.survey.tree.certification.readonly</field>
-        <field name="model">survey.survey</field>
-        <field name="inherit_id" ref="survey.survey_survey_view_tree"/>
-        <field name="mode">primary</field>
-        <field name="arch" type="xml">
-            <xpath expr="//list" position="attributes">
-                 <attribute name="create">false</attribute>
-            </xpath>
-        </field>
-    </record>
-
-    <!-- Certificaciones (DISPATCHER) -->
-    <record id="action_server_dispatch_certificaciones" model="ir.actions.server">
-        <field name="name">Certificaciones</field>
-        <field name="model_id" ref="survey.model_survey_survey"/>
-        <field name="state">code</field>
-        <field name="code">
-user = env.user
-can_create = user.has_group('elearning_universidad.grupo_director_academico') or user.has_group('elearning_universidad.grupo_administrador_universidad')
-
-if can_create:
-    views = [
-        (env.ref('survey.survey_survey_view_kanban').id, 'kanban'),
-        (env.ref('survey.survey_survey_view_tree').id, 'list'),
-        (env.ref('survey.survey_survey_view_form').id, 'form')
-    ]
-    ctx = {'default_certification': True, 'default_scoring_type': 'scoring_with_answers'}
-else:
-    views = [
-        (env.ref('elearning_universidad.view_survey_kanban_certification_readonly').id, 'kanban'),
-        (env.ref('elearning_universidad.view_survey_tree_certification_readonly').id, 'list'),
-        (env.ref('survey.survey_survey_view_form').id, 'form') 
-    ]
-    # Forzar modo readonly globalmente para esta acción (oculta botón Nuevo en Form)
-    ctx = {'default_certification': True, 'default_scoring_type': 'scoring_with_answers', 'create': False}
-
-action = {
-    'name': 'Certificaciones',
-    'type': 'ir.actions.act_window',
-    'res_model': 'survey.survey',
-    'view_mode': 'kanban,list,form',
-    'views': views,
-    'domain': [('certification', '=', True)], 
-    'context': ctx,
-}
-        </field>
-    </record>
+    <!-- Certificaciones y Vistas Readonly ELIMINADAS por solicitud de limpieza -->
 
     <!-- Exámenes -->
     <record id="action_universidad_examenes" model="ir.actions.act_window">
@@ -375,26 +314,12 @@ action = {
                   action="action_universidad_contenidos"
                   sequence="3"/>
     
-    <menuitem id="menu_universidad_certificaciones_root"
-              name="Certificaciones"
-              parent="website_slides.website_slides_menu_root"
-              sequence="4"/>
-        <menuitem id="menu_universidad_certificaciones_item"
-                  name="Certificaciones"
-                  parent="menu_universidad_certificaciones_root"
-                  action="action_server_dispatch_certificaciones"
-                  sequence="1"/>
-        <menuitem id="menu_universidad_titulos"
-                  name="Títulos"
-                  parent="menu_universidad_certificaciones_root"
-                  action="action_universidad_titulos"
-                  sequence="2"/>
     
     <menuitem id="menu_universidad_evaluacion_root"
               name="Evaluación"
               parent="website_slides.website_slides_menu_root"
               sequence="5"
-              groups="elearning_universidad.grupo_personal_docente"/>
+              groups="elearning_universidad.grupo_personal_docente,elearning_universidad.grupo_administrador_universidad,elearning_universidad.grupo_director_academico"/>
         <menuitem id="menu_universidad_boletin"
                   name="Boletín de Notas"
                   parent="menu_universidad_evaluacion_root"
@@ -405,5 +330,11 @@ action = {
                   parent="menu_universidad_evaluacion_root"
                   action="elearning_universidad.action_universidad_pendientes"
                   sequence="2"/>
+        <menuitem id="menu_universidad_titulos"
+              name="Títulos"
+              parent="menu_universidad_evaluacion_root"
+              action="action_universidad_titulos"
+              sequence="3"
+              groups="elearning_universidad.grupo_director_academico,elearning_universidad.grupo_administrador_universidad"/>
 
 </odoo>
