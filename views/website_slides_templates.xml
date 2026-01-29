@@ -214,4 +214,44 @@
         </xpath>
     </template>
 
+    <!-- 10. [NUEVO] Filtrar cursos en la pantalla de CONFIRMACIÓN de compra (Ocultar Asignaturas) -->
+    <template id="course_purchased_confirmation_message_university" inherit_id="website_sale_slides.course_purchased_confirmation_message">
+        <xpath expr="//div[hasclass('mt-2')]//t[@t-foreach='order.order_line']" position="replace">
+            <t t-foreach="order.order_line" t-as="line">
+                <!-- Filtro: Solo mostrar cursos que NO sean de tipo 'asignatura' -->
+                <div t-foreach="line.product_id.channel_ids.filtered(lambda c: c.tipo_curso != 'asignatura')" t-as="course" class="row mx-0 my-2 border">
+                    <div class="col-5 d-flex justify-content-center my-auto">
+                        <span t-if="course.image_1920" t-field="course.image_1920" t-options="{'widget': 'image', 'class': 'my-2'}"/>
+                        <img t-else="" class="img img-fluid my-2" src="/website_slides/static/src/img/channel-training-default.jpg"/>
+                    </div>
+                    <t t-set="invitation_link" t-value="course_memberships[course].invitation_link if course in course_memberships else ''"/>
+                    <div class="col-7">
+                        <a t-att-href="invitation_link"><h3 t-out="course.name" class="m-2"/></a>
+                        <div t-out="course.description_short" class="fw-light o_wslides_desc_truncate_2 ms-2"/>
+                        <div class="fw-light ms-2 mt-2">
+                            <t t-out="course.total_time" t-options="{'widget': 'duration', 'unit': 'hour', 'round': 'minute'}"/>
+                            <t t-if="course.total_slides">
+                               <t t-if="course.total_time"> - </t><t t-out="course.total_slides"/> paso(s)
+                            </t>
+                        </div>
+                        <a role="button" class="btn btn-primary ms-2 my-2" t-attf-class="btn btn-primary ms-2 my-2 #{'disabled' if not invitation_link else ''}" t-att-href="invitation_link">
+                            Empezar a aprender
+                        </a>
+                    </div>
+                </div>
+            </t>
+        </xpath>
+    </template>
+
+    <!-- 11. [NUEVO] Filtrar cursos en el RESUMEN del carrito (Ocultar Asignaturas) -->
+    <template id="cart_summary_inherit_website_sale_slides_university" inherit_id="website_sale_slides.cart_summary_inherit_website_sale_slides">
+        <xpath expr="//div[@t-if='line.product_id.channel_ids']" position="replace">
+            <!-- Filtro: Solo mostrar asignaturas que SI sean de tipo 'master' o 'microcredencial' (NO asignatura) -->
+            <div t-if="line.product_id.channel_ids"
+                 t-foreach="line.product_id.channel_ids.filtered(lambda course: course.enroll == 'payment' and course.tipo_curso != 'asignatura')"
+                 t-as="course"
+                 t-esc="course.name"/>
+        </xpath>
+    </template>
+
 </odoo>
