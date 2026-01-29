@@ -30,10 +30,11 @@
         <field name="inherit_id" ref="website_sale_slides.slide_channel_view_kanban"/>
         <field name="arch" type="xml">
              <data>
-                 <!-- Ocultamos campos financieros inyectados por website_sale_slides -->
+                 <!-- Ocultar ingresos por venta de productos para no administradores -->
                  <xpath expr="//field[@name='product_sale_revenues']" position="attributes">
                     <attribute name="groups">elearning_universidad.grupo_administrador_universidad</attribute>
                  </xpath>
+                 <!-- Ocultar etiqueta de ingresos por venta de productos para no administradores -->
                  <xpath expr="//label[@for='product_sale_revenues']" position="attributes">
                     <attribute name="groups">elearning_universidad.grupo_administrador_universidad</attribute>
                  </xpath>
@@ -83,24 +84,26 @@
         <field name="model">slide.channel</field>
         <field name="inherit_id" ref="website_slides.view_slide_channel_form"/>
         <field name="arch" type="xml">
-            <!-- DESHABILITAR CREACIÓN DESDE EL FORMULARIO (Evitar saltos de restricción) -->
+            <!-- Deshabilitar la creación desde el formulario para evitar salto de restricción -->
             <xpath expr="//form" position="attributes">
                 <attribute name="create">false</attribute>
             </xpath>
 
-            <!-- OCULTAR BOTONES FINANCIEROS (Ventas/Curso) PARA NO ADMINS -->
+            <!-- Ocultar botón de ventas para usuarios que no son administradores -->
             <xpath expr="//div[@name='button_box']/button[@name='action_view_sales']" position="attributes">
                 <attribute name="groups">elearning_universidad.grupo_administrador_universidad</attribute>
             </xpath>
             
+            <!-- Inyectar campos técnicos auxiliares para el control de la interfaz -->
             <xpath expr="//header" position="before">
-                 <!-- Campo técnico para control UI -->
                  <field name="can_manage_config" invisible="1"/>
                  <field name="can_see_financials" invisible="1"/>
                  <field name="can_manage_members" invisible="1"/>
                  <field name="is_university_admin" invisible="1"/>
                  <field name="is_exclusive_teacher" invisible="1"/>
             </xpath>
+            
+            <!-- Insertar botones de flujo de trabajo en la cabecera -->
             <xpath expr="//header" position="inside">
                 <!-- Botones para Docentes/Directores (Ocultos para Admins) -->
                 <button name="action_presentar" string="Presentar para Revisión" type="object" 
@@ -141,17 +144,27 @@
                 <field name="estado_universidad" widget="statusbar" statusbar_visible="borrador,presentado,publicado,finalizado" invisible="tipo_curso == 'asignatura' or context.get('hide_workflow_buttons')"/>
             </xpath>
 
-            <!-- INTEGRAMOS CONFIGURACIÓN DENTRO DE LA PESTAÑA OPCIONES (Options) -->
-            <!-- Nota: Usamos name='options' que es estándar en website_slides -->
-            <!-- Añadimos tipo_curso oculto fuera del notebook para asegurar que esté en el contexto de la vista Form -->
+            <!-- Añadir campo tipo_curso fuera del notebook para contexto -->
             <xpath expr="//notebook" position="before">
                 <field name="tipo_curso" invisible="1"/>
             </xpath>
             
+            <!-- Ocultar pestaña de opciones para docentes en masters y microcredenciales -->
             <xpath expr="//notebook/page[@name='options']" position="attributes">
                 <attribute name="invisible">is_exclusive_teacher and tipo_curso in ['master', 'microcredencial']</attribute>
             </xpath>
 
+            <!-- Ocultar pestaña de reglas de karma -->
+            <xpath expr="//notebook/page[@name='karma_rules']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+
+            <!-- Ocultar sección de comentarios para no administradores -->
+            <xpath expr="//field[@name='allow_comment']/.." position="attributes">
+                <attribute name="invisible">not is_university_admin</attribute>
+            </xpath>
+
+            <!-- Insertar grupos de configuración académica universitaria -->
             <xpath expr="//notebook/page[@name='options']" position="inside">
                  <group string="Gestión Académica Universitaria">
                      <group>
@@ -185,75 +198,62 @@
                  </group>
             </xpath>
 
-            <!-- MOVER PRECIO DEBAJO DE PRODUCTO EN POLÍTICA DE INSCRIPCIÓN -->
+            <!-- Inyectar posición para el precio en la política de inscripción -->
             <xpath expr="//field[@name='enroll']" position="after">
-                 <!-- Inyectamos precio justo en el bloque de enrollment policy -->
-                 <!-- Ocultamos product_id por solicitud, se gestiona automáticamente -->
             </xpath>
+            <!-- Ocultar campo de producto nativo -->
             <xpath expr="//field[@name='product_id']" position="attributes">
                  <attribute name="invisible">1</attribute>
             </xpath>
+            <!-- Insertar campo de precio del curso -->
             <xpath expr="//field[@name='product_id']" position="after">
                  <field name="precio_curso" 
                         readonly="not can_manage_config"
                         invisible="enroll != 'payment'"/>
             </xpath>
             
-            <!-- AJUSTES VISUALES GENERALES Y BLOQUEOS -->
-            <!-- Personalización de Botones de Agregado de Contenido -->
-            <!-- Barra de Control de Contenidos -->
-            <!-- Barra de Control de Contenidos -->
-            <!-- ESTRATEGIA NUCLEAR: Reemplazo Total con Redefinición Explícita de Todos los Botones -->
-            <!-- Esto garantiza que no queden botones nativos sin filtrar y solucionamos el conflicto de herencia -->
-            
-      
-
-            <!-- Ocultar Campos y Grupos Nativos según Reglas -->
-            <!-- Grupo "Curso" nativo: Al ocultar todos sus campos visibles clave, Odoo suele ocultar el grupo. -->
-            <!-- Pero para asegurar, apuntamos a su contenedor si fuera posible. Como no tenemos un ID de grupo fiable,-->
-            <!-- ocultamos user_id, website_id que son los principales. -->
+            <!-- Ocultar campo de usuario responsable nativo -->
             <xpath expr="//field[@name='user_id']" position="attributes">
                 <attribute name="invisible">1</attribute>
             </xpath>
+            <!-- Ocultar campo de sitio web nativo -->
             <xpath expr="//field[@name='website_id']" position="attributes">
                 <attribute name="invisible">1</attribute>
             </xpath>
-            <!-- INTENTO: Ocultar el grupo entero que contiene website_id (Mejor práctica UI) -->
+            <!-- Ocultar grupo contenedor del sitio web -->
             <xpath expr="//field[@name='website_id']/.." position="attributes">
                 <attribute name="invisible">1</attribute>
             </xpath>
             
-            <!-- Ocultar Grupos de Configuración Nativa en Asignaturas (Enroll y Display) -->
-            <!-- Grupo de Inscripción (Enroll Policy + Visibility) -->
+            <!-- Ocultar grupo de política de inscripción si no aplica -->
             <xpath expr="//field[@name='enroll']/.." position="attributes">
                 <attribute name="invisible">not can_see_financials or tipo_curso == 'asignatura'</attribute>
             </xpath>
-            <!-- Grupo de Visualización (Channel Type + Promote Strategy) -->
-            <!-- "Mostrar pantalla" oculto en general -->
+            <!-- Ocultar grupo de tipo de canal -->
             <xpath expr="//field[@name='channel_type']/.." position="attributes">
                 <attribute name="invisible">1</attribute>
             </xpath>
 
-            <!-- Refuerzo individual por si acaso están fuera de grupo -->
+            <!-- Ocultar campo de tipo de canal en asignaturas -->
             <xpath expr="//field[@name='channel_type']" position="attributes">
                 <attribute name="invisible">tipo_curso == 'asignatura'</attribute>
             </xpath>
 
-            <!-- Bloqueo de Edición General -->
+            <!-- Hacer el nombre de solo lectura según permisos -->
             <xpath expr="//field[@name='name']" position="attributes">
                 <attribute name="readonly">not can_manage_config</attribute>
             </xpath>
+            <!-- Hacer la descripción de solo lectura según permisos -->
             <xpath expr="//field[@name='description']" position="attributes">
                 <attribute name="readonly">not can_manage_config</attribute>
             </xpath>
 
-            <!-- ESTRATEGIA DEFINITIVA: DUAL FIELDS -->
-            <!-- 1. Ocultamos el campo original 'slide_ids' si es Master -->
+            <!-- Ocultar lista de diapositivas original en Masters -->
             <xpath expr="//field[@name='slide_ids']" position="attributes">
                 <attribute name="invisible">tipo_curso == 'master'</attribute>
             </xpath>
 
-            <!-- 2. Insertamos el campo PROXY 'slide_ids_master' SOLO para Masters (Visible solo si Master) -->
+            <!-- Insertar campo proxy para contenido de Masters -->
             <xpath expr="//field[@name='slide_ids']" position="after">
                 <div class="mb-3" invisible="tipo_curso != 'master'">
                     <button name="action_open_add_asignatura" 
@@ -290,22 +290,22 @@
                 </field>
             </xpath>
 
-            <!-- Inyección de columna es_evaluable -->
+            <!-- Añadir columna de evaluable en la lista de contenido -->
             <xpath expr="//field[@name='slide_ids']/list/field[@name='slide_category']" position="after">
                 <field name="es_evaluable" optional="show" force_save="1"/>
             </xpath> 
 
-            <!-- OCULTAR BOTONES NATIVOS INNECESARIOS -->
+            <!-- Ocultar botón de inscripción nativo -->
             <xpath expr="//button[@name='action_channel_enroll']" position="attributes">
                  <attribute name="invisible">1</attribute>
             </xpath>
 
-            <!-- GESTIÓN DE BOTONES DE INVITACIÓN -->
+            <!-- Ocultar botón de invitación nativo -->
             <xpath expr="//button[@name='action_channel_invite']" position="attributes">
                  <attribute name="invisible">1</attribute>
             </xpath>
 
-            <!-- BOTONES DE FLUJO DE PUBLICACIÓN EN CABECERA -->
+            <!-- Añadir botón de confirmación de programación en cabecera -->
             <xpath expr="//header" position="inside">
                  <button name="action_confirmar_programacion" 
                          string="Confirmar Programación" 
@@ -313,19 +313,14 @@
                          class="btn-primary"
                          invisible="not fecha_programada_publicacion or estado_universidad in ['programado', 'publicado', 'finalizado'] or context.get('hide_workflow_buttons')"/>
             </xpath>
-            
-            <!-- CAMPO FECHA PROGRAMADA EN FORMULARIO (Si no existe, lo inyectamos) -->
+      
+            <!-- Inyectar campo de fecha programada si no existe -->
              <xpath expr="//field[@name='channel_type']" position="after">
                  <field name="fecha_programada_publicacion" invisible="1"/>
              </xpath>
-
-
-            
-            
             
         </field>
     </record>
-
 
     <!-- ACCESO A MENÚS PARA GRUPOS PERSONALIZADOS -->
     <!-- Permitimos que Docentes y Directores vean el menú raíz de eLearning sin ser 'Encargados' -->
