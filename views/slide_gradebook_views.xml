@@ -140,7 +140,7 @@
                                     
                                     <!-- Detalles de Entrega (Solo visibles si tienen sentido) -->
                                     <field name="fecha_entrega" readonly="1" optional="show"/>
-                                    <field name="archivo_entrega" widget="binary" filename="nombre_archivo" optional="show"/>
+                                    <field name="archivo_entrega" widget="binary" filename="nombre_archivo" optional="show" readonly="1"/>
                                     <field name="nombre_archivo" column_invisible="True"/>
                                     
                                     <!-- Calificación (Solo editable si no está confirmado) -->
