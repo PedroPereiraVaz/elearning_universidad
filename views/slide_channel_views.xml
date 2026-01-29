@@ -132,7 +132,7 @@
                 <button name="action_publicar" string="Publicar Ahora" type="object" 
                         class="btn-success"
                         groups="elearning_universidad.grupo_administrador_universidad,elearning_universidad.grupo_director_academico"
-                        invisible="not can_manage_config or (estado_universidad not in ['presentado', 'subsanacion', 'programado'] and not (tipo_curso == 'asignatura' and estado_universidad == 'borrador')) or context.get('hide_workflow_buttons')"/>
+                        invisible="not can_manage_config or (estado_universidad not in ['presentado', 'subsanacion', 'programado'] and not (tipo_curso == 'asignatura' and estado_universidad == 'borrador')) or (not is_university_admin and tipo_curso != 'asignatura') or context.get('hide_workflow_buttons')"/>
                 
                 <button name="action_finalizar" string="Finalizar Curso" type="object" 
                         class="btn-danger"

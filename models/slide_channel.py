@@ -456,8 +456,15 @@ class CanalSlide(models.Model):
                     raise ValidationError(f"El curso '{record.name}' emite título pero no tiene seleccionada ninguna Plantilla.")
 
                 # 5. Duración de Asignatura (Requisito Académico)
-                if record.tipo_curso == 'asignatura' and record.total_time <= 0:
-                    raise ValidationError(f"La asignatura '{record.name}' debe tener una duración mayor a 0 horas para ser publicada.")
+                # CAMBIO: Usamos ESTRICTAMENTE la duración definida en la ficha del Master (Slide), no el contenido interno.
+                if record.tipo_curso == 'asignatura':
+                   master_slide = self.env['slide.slide'].search([
+                        ('asignatura_id', '=', record.id),
+                        ('slide_category', '=', 'sub_course')
+                    ], limit=1)
+                    
+                   if not master_slide or master_slide.completion_time <= 0:
+                        raise ValidationError(f"La asignatura '{record.name}' debe tener una duración mayor a 0 horas definida en el Master para ser publicada.")
 
     @api.onchange('master_id')
     def _onchange_master_id_directores(self):

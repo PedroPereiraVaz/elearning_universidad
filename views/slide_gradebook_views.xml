@@ -13,8 +13,8 @@
                 <field name="name" string="Curso / Master"/>
                 <field name="tipo_curso"/>
                 <field name="director_academico_ids" widget="many2many_tags" string="Dirección Académica"/>
+                <field name="members_count" string="Alumnos"/>
                 <field name="total_slides" string="Contenidos"/>
-                <field name="partner_ids" invisible="1"/>
             </list>
         </field>
     </record>
@@ -66,8 +66,14 @@
         <field name="arch" type="xml">
             <form string="Acta Académica" create="0">
                 <header>
+                    <!-- Botón Master/Micro: Solo Directores/Admins -->
                     <button name="accion_cerrar_acta" string="Cerrar Acta" type="object" class="btn-primary"
-                            invisible="estado_nota not in ['pendiente_presentar', 'pendiente_revision']"/>
+                            groups="elearning_universidad.grupo_administrador_universidad,elearning_universidad.grupo_director_academico"
+                            invisible="tipo_curso_rel == 'asignatura' or estado_nota not in ['pendiente_presentar', 'pendiente_revision']"/>
+                    
+                    <!-- Botón Asignatura: Visible para Docentes también -->
+                    <button name="accion_cerrar_acta" string="Cerrar Acta Asignatura" type="object" class="btn-primary"
+                            invisible="tipo_curso_rel != 'asignatura' or estado_nota not in ['pendiente_presentar', 'pendiente_revision']"/>
                     <button name="action_issue_university_degree" string="Emitir Título" type="object" class="btn-success"
                             invisible="not tiene_titulo_curso or estado_nota != 'evaluado' or not titulo_emitido == False"/>
                                         <!-- Para Masters y Microcredenciales: Flujo Completo -->
@@ -161,50 +167,22 @@
     <!-- ============================================================ -->
     <!-- 4. VISTAS AUXILIARES (Legacy limpias o reutlizadas) -->
     <!-- ============================================================ -->
-    
-    <!-- Vista para POPUP de Evaluación Individual (si se usa) -->
-    <record id="view_slide_slide_partner_form_university" model="ir.ui.view">
-        <field name="name">slide.slide.partner.form.university</field>
-        <field name="model">slide.slide.partner</field>
-        <field name="arch" type="xml">
-            <form string="Calificación de Contenido">
-                <header>
-                    <button name="accion_confirmar_nota" string="Confirmar Nota" type="object" 
-                            class="btn-primary" invisible="estado_evaluacion == 'evaluado'"/>
-                    <field name="estado_evaluacion" widget="statusbar"/>
-                </header>
-                <sheet>
-                    <group>
-                        <group string="Información del Alumno">
-                            <field name="partner_id" readonly="1"/>
-                            <field name="channel_id" readonly="1"/>
-                            <field name="slide_id" readonly="1"/>
-                        </group>
-                        <group string="Evaluación">
-                            <field name="nota_evaluacion" widget="float"/>
-                            <field name="fecha_entrega" readonly="1"/>
-                            <field name="archivo_entrega" filename="nombre_archivo" widget="binary"/>
-                            <field name="nombre_archivo" invisible="1"/>
-                        </group>
-                    </group>
-                </sheet>
-            </form>
-        </field>
-    </record>
 
     <!-- Acción Legacy: Pendientes de Evaluar (Accesible desde menú secundario) -->
     <record id="view_slide_slide_partner_tree_pending" model="ir.ui.view">
         <field name="name">slide.slide.partner.tree.pending</field>
         <field name="model">slide.slide.partner</field>
         <field name="arch" type="xml">
-            <list string="Pendientes de Evaluar" create="0" edit="0" decoration-warning="estado_evaluacion == 'pendiente_revision'">
-                <field name="partner_id" string="Alumno"/>
-                <field name="channel_id" string="Curso/Contenido"/>
-                <field name="slide_id"/>
-                <field name="fecha_entrega"/>
-                <field name="archivo_entrega" widget="binary" filename="nombre_archivo" string="Entrega"/>
+            <list string="Pendientes de Evaluar" create="0" delete="0" editable="bottom" decoration-warning="estado_evaluacion == 'pendiente_revision'">
+                <field name="partner_id" string="Alumno" readonly="1"/>
+                <field name="channel_id" string="Curso/Contenido" readonly="1"/>
+                <field name="slide_id" readonly="1"/>
+                <field name="fecha_entrega" readonly="1"/>
+                <field name="nombre_archivo" column_invisible="True"/>
+                <field name="archivo_entrega" widget="binary" filename="nombre_archivo" string="Entrega" readonly="1"/>
+                <field name="nota_evaluacion" string="Calificación"/>
                 <field name="estado_evaluacion" widget="badge" decoration-warning="estado_evaluacion == 'pendiente_revision'"/>
-                <button name="accion_confirmar_nota" string="Confirmar Nota" type="object" icon="fa-check" title="Confirmar esta nota"/>
+                <button name="accion_confirmar_nota" string="Confirmar nota" type="object" icon="fa-check-circle" class="btn-sm btn-success" title="Confirmar esta nota"/>
             </list>
         </field>
     </record>
@@ -212,7 +190,7 @@
     <record id="action_universidad_pendientes" model="ir.actions.act_window">
         <field name="name">Pendientes de Evaluar</field>
         <field name="res_model">slide.slide.partner</field>
-        <field name="view_mode">list,form</field>
+        <field name="view_mode">list</field>
         <field name="domain">[('estado_evaluacion', '=', 'pendiente_revision')]</field>
         <field name="view_id" ref="view_slide_slide_partner_tree_pending"/>
     </record>

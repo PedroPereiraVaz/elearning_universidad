@@ -212,7 +212,7 @@ class SlideChannelPartner(models.Model):
         'slide.slide.partner', 
         'channel_partner_id', 
         string='Evaluaciones de Contenido',
-        domain=['|', ('slide_id.es_evaluable', '=', True), ('slide_id.slide_category', 'in', ['exam', 'delivery', 'certification', 'sub_course'])]
+        domain=['&', ('slide_id.is_published', '=', True), '|', ('slide_id.es_evaluable', '=', True), ('slide_id.slide_category', 'in', ['exam', 'delivery', 'certification', 'sub_course'])]
     )
 
     # --- Jerarquía y Navegación (Master -> Asignaturas) ---
@@ -245,7 +245,8 @@ class SlideChannelPartner(models.Model):
                 domain = [
                     ('partner_id', '=', record.partner_id.id),
                     ('channel_id.master_id', '=', record.channel_id.id),
-                    ('channel_id.tipo_curso', '=', 'asignatura')
+                    ('channel_id.tipo_curso', '=', 'asignatura'),
+                    ('channel_id.estado_universidad', '=', 'publicado')
                 ]
                 
                 # FILTRO DE SEGURIDAD: 
@@ -315,22 +316,31 @@ class SlideChannelPartner(models.Model):
         # Pre-cálculo de datos de Masters para evitar re-sumar horas en cada alumno
         master_data_cache = {}
         for master in all_masters:
-             asigs = master.asignatura_ids
-             # Filter asignaturas with duration > 0 to avoid division by zero issues in weights (though logical check handles total)
-             total_horas = sum(asigs.mapped('total_time'))
+             # Búsqueda de los slides tipo 'sub_course' (Asignaturas) dentro del Master
+             # Estos contienen la duración OFICIAL para la ponderación académica.
+             master_slides = self.env['slide.slide'].search([
+                 ('channel_id', '=', master.id),
+                 ('slide_category', '=', 'sub_course')
+             ])
+             
+             # Mapa: ID del Canal Asignatura -> Duración (Slide)
+             # Esto permite buscar rápido la duración de una asignatura dado su canal_id
+             duration_map = {s.asignatura_id.id: s.completion_time for s in master_slides if s.asignatura_id}
+             
+             total_horas = sum(duration_map.values())
              master_data_cache[master.id] = {
-                 'asignaturas': asigs,
-                 'total_horas': curr_total_horas if (curr_total_horas := total_horas) > 0 else 0
+                 'asignaturas': master.asignatura_ids, # Mantenemos referencia para iterar
+                 'duration_map': duration_map,
+                 'total_horas': total_horas if total_horas > 0 else 0
              }
 
         # Cálculo Final en Memoria
         for record in masters_records:
             m_data = master_data_cache.get(record.channel_id.id)
             
-            # Recalculamos total_horas dinámicamente por alumno si fuera necesario (aquí es global del master)
-            # Pero si el total de horas es 0, hacemos media aritmética simple.
             total_horas_master = m_data['total_horas'] if m_data else 0
             asignaturas = m_data['asignaturas'] if m_data else []
+            duration_map = m_data['duration_map'] if m_data else {}
             
             if not asignaturas:
                  record.nota_final = 0.0
@@ -339,10 +349,13 @@ class SlideChannelPartner(models.Model):
             nota_acumulada = 0.0
             
             if total_horas_master > 0:
-                # Media Ponderada por Horas
+                # Media Ponderada por Horas (DEFINIDAS EN EL MASTER)
                 for asig in asignaturas:
                     nota_asig = scores_map.get((record.partner_id.id, asig.id), 0.0)
-                    peso = asig.total_time / total_horas_master
+                    # Recuperamos la duración oficial del slide asociado a esta asignatura
+                    asig_duration = duration_map.get(asig.id, 0.0)
+                    
+                    peso = asig_duration / total_horas_master
                     nota_acumulada += nota_asig * peso
             else:
                 # Media Aritmética Simple (Fallback si no hay horas definidas)
