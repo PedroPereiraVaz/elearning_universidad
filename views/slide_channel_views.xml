@@ -288,6 +288,10 @@
                         </control>
                      </list>
                 </field>
+            </xpath> 
+
+            <!-- Ocultar botón 'Add Certification' nativo de website_slides_survey -->
+            <xpath expr="//field[@name='slide_ids']//create[@name='add_slide_certificate']" position="replace">
             </xpath>
 
             <!-- Añadir columna de evaluable en la lista de contenido -->
