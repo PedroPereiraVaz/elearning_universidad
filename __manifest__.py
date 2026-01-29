@@ -13,6 +13,11 @@
     """,
     'author': 'Pedro Pereira',
     'depends': ['website_slides', 'survey', 'website_slides_survey', 'website_sale_slides'],
+    'assets': {
+        'web.assets_backend': [
+            'elearning_universidad/static/src/scss/chatter_hide.scss',
+        ],
+    },
     'data': [
         'security/security.xml',
         'security/ir.model.access.csv',

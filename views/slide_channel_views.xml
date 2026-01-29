@@ -322,6 +322,11 @@
              <xpath expr="//field[@name='channel_type']" position="after">
                  <field name="fecha_programada_publicacion" invisible="1"/>
              </xpath>
+
+             <!-- Ocultar TODO el chatter para Administradores de Universidad  -->
+             <xpath expr="//chatter" position="attributes">
+                 <attribute name="invisible">is_university_admin</attribute>
+             </xpath>
             
         </field>
     </record>

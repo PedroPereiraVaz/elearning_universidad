@@ -1,0 +1,19 @@
+/* Ocultar botón de Actividades (Reloj) en el Chatter */
+.o-mail-Chatter-activity {
+  display: none !important;
+}
+
+/* Ocultar gestión de seguidores (Botón de silueta y lista) en el Chatter */
+.o-mail-Followers {
+  display: none !important;
+}
+
+/* Si se quisiera ocultar el botón de enviar mensaje, descomentar: */
+/*
+.o-mail-Chatter-sendMessage {
+    display: none !important;
+}
+.o-mail-Chatter-logNote {
+    display: none !important;
+}
+*/
