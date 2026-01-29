@@ -680,6 +680,11 @@ class CanalSlide(models.Model):
         else:
             old_asignaturas = {}
 
+        if 'master_id' in vals:
+            old_masters = {rec.id: rec.master_id for rec in self}
+        else:
+            old_masters = {}
+
         # 1. Bloqueo de Tipo (INMUTABLE)
         if 'tipo_curso' in vals:
             for record in self:
@@ -751,6 +756,24 @@ class CanalSlide(models.Model):
                 removed_asignaturas = previous_asignaturas - current_asignaturas
                 if removed_asignaturas:
                     removed_asignaturas.sudo()._remove_membership(socios.ids)
+                    
+        # Propagación Inversa: Si una Asignatura cambia de Master (se agrega/quita vía master_id)
+        if 'master_id' in vals:
+            for asignatura in self.filtered(lambda c: c.tipo_curso == 'asignatura'):
+                current_master = asignatura.master_id
+                previous_master = old_masters.get(asignatura.id, self.env['slide.channel'])
+                
+                # A. Cambio de Master (Add/Switch) -> Heredar alumnos del Nuevo Master
+                if current_master and current_master != previous_master:
+                    socios_master = current_master.channel_partner_ids.mapped('partner_id')
+                    if socios_master:
+                        asignatura.sudo()._action_add_members(socios_master)
+                
+                # B. Salida de Master (Remove/Switch) -> Eliminar alumnos del Viejo Master
+                if previous_master and previous_master != current_master:
+                    socios_old = previous_master.channel_partner_ids.mapped('partner_id')
+                    if socios_old:
+                        asignatura.sudo()._remove_membership(socios_old.ids)
 
         # Sincronización de SEGUIDORES (Nativo Odoo)
         if old_staff:

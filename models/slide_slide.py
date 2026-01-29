@@ -360,8 +360,8 @@ class Slide(models.Model):
                 slide.write({'slide_category': 'exam'})
 
         slides._asegurar_registros_seguimiento()
-        slides._propagar_publicacion_asignatura()
-        slides._sincronizar_asignatura_master() # Nuevo
+        slides._sincronizar_asignatura_master() # Primero vinculamos al Master (para cumplir requisitos)
+        slides._propagar_publicacion_asignatura() # Luego intentamos publicar
         return slides
 
     def write(self, vals):
