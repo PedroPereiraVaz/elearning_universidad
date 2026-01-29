@@ -36,12 +36,14 @@ class Slide(models.Model):
     nbr_exam = fields.Integer(string='Número de Exámenes', compute='_compute_slides_statistics', store=True, compute_sudo=True)
 
     slide_category = fields.Selection(selection_add=[
+        ('quiz', 'Self-Assessment Quiz'), # Source in English
         ('sub_course', 'Asignatura'),
         ('delivery', 'Entregable'),
         ('exam', 'Examen')
     ], ondelete={'sub_course': 'cascade', 'delivery': 'cascade', 'exam': 'cascade'})
 
     slide_type = fields.Selection(selection_add=[
+        ('quiz', 'Self-Assessment Quiz'), # Source in English
         ('sub_course', 'Asignatura'),
         ('delivery', 'Entregable'),
         ('exam', 'Examen')

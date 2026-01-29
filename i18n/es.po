@@ -1,0 +1,10 @@
+#. module: elearning_universidad
+#: model:ir.model.fields.selection,name:website_slides.selection__slide_slide__slide_category__quiz
+#: model:ir.model.fields.selection,name:website_slides.selection__slide_slide__slide_type__quiz
+msgid "Self-Assessment Quiz"
+msgstr "Cuestionario de Autoevaluación"
+
+#. module: elearning_universidad
+#: model:ir.model.fields,field_description:website_slides.field_slide_slide__slide_category
+msgid "Category"
+msgstr "Tipo de Contenido"
