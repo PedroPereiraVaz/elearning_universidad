@@ -135,7 +135,7 @@
                         class="btn-danger"
                         groups="elearning_universidad.grupo_administrador_universidad"
                         confirm="¿Está seguro de que desea finalizar y archivar este curso? Esta acción es irreversible desde el portal."
-                        invisible="estado_universidad != 'publicado' or tipo_curso == 'asignatura' or context.get('hide_workflow_buttons')"/>
+                        invisible="estado_universidad != 'publicado' or tipo_curso not in ('master', 'microcredencial') or context.get('hide_workflow_buttons')"/>
                 
                 <field name="estado_universidad" widget="statusbar" statusbar_visible="borrador,publicado" invisible="tipo_curso != 'asignatura'"/>
                 <field name="estado_universidad" widget="statusbar" statusbar_visible="borrador,presentado,publicado,finalizado" invisible="tipo_curso == 'asignatura' or context.get('hide_workflow_buttons')"/>
@@ -300,9 +300,9 @@
                  <attribute name="invisible">1</attribute>
             </xpath>
 
-            <!-- GESTIÓN DE BOTONES DE INVITACIÓN (Solo Master/Micro) -->
+            <!-- GESTIÓN DE BOTONES DE INVITACIÓN -->
             <xpath expr="//button[@name='action_channel_invite']" position="attributes">
-                 <attribute name="invisible">tipo_curso == 'asignatura'</attribute>
+                 <attribute name="invisible">1</attribute>
             </xpath>
 
             <!-- BOTONES DE FLUJO DE PUBLICACIÓN EN CABECERA -->
