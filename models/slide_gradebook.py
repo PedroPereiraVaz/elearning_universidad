@@ -231,8 +231,13 @@ class SlideChannelPartner(models.Model):
     asignatura_partner_ids = fields.One2many(
         'slide.channel.partner', 
         compute='_compute_asignatura_partner_ids', 
+        inverse='_set_asignatura_partner_ids', # Necesario para que el popup sea editable
         string='Asignaturas dadas por este alumno en este Master'
     )
+
+    def _set_asignatura_partner_ids(self):
+        """ Método inverse dummy para permitir edición en el popup One2many """
+        pass
 
     @api.depends('channel_id', 'partner_id')
     def _compute_asignatura_partner_ids(self):
@@ -450,7 +455,7 @@ class SlideChannelPartner(models.Model):
             'res_id': self.id,
             'view_mode': 'form',
             'view_id': self.env.ref('elearning_universidad.view_slide_channel_partner_form_gradebook').id,
-            'target': 'current', # Forzar navegación en la ventana actual
+            'target': 'main', # 'main' rompe el stack de breadcrumbs/modales mejor que 'current' en algunos casos
             'context': {'create': False, 'edit': True},
         }
 

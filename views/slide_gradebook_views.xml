@@ -118,9 +118,9 @@
                             
                             <!-- CASO A: SI ES MASTER -> Muestra Lista de Asignaturas -->
                             <field name="tipo_curso_rel" invisible="1"/>
-                            <field name="asignatura_partner_ids" readonly="1" invisible="not tipo_curso_rel == 'master'">
-                                <!-- ACTION: Click en fila abre la asignatura (recursivo) -->
-                                <list string="Asignaturas" create="0" delete="0" edit="0" action="action_open_gradebook_form" type="object">
+                            <field name="asignatura_partner_ids" invisible="not tipo_curso_rel == 'master'">
+                                <!-- ACTION: Click en fila abre Popup. Botón Evaluar abre pantalla completa. -->
+                                <list string="Asignaturas" create="0" delete="0" edit="1" action="action_open_gradebook_form" type="object">
                                     <field name="channel_id" string="Asignatura"/>
                                     <field name="nota_final" widget="float" string="Nota (0-10)"/>
                                     <field name="estado_nota" widget="badge" decoration-success="estado_nota == 'evaluado'"/>
