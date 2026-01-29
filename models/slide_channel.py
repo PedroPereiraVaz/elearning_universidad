@@ -96,8 +96,8 @@ class CanalSlide(models.Model):
         for record in self:
             # Detectar si el usuario es Director de ESTE curso específico
             # O si es Asignatura (donde el rol de grupo Director suele prevalecer)
-            # Simplificación: Si tienes grupo Director, gestionas configuración si estás asignado O si eres admin.
-            # Pero para el campo 'upload_limit_mb', el usuario pide que el director pueda modificarlo.
+            # Simplificación: Si tienes grupo Director, gestionas configuración si estás asignado o si eres admin.
+            # Pero para el campo 'upload_limit_mb', el director pueda modificarlo.
             
             is_responsible_director = is_director_group and (
                 user.id in record.director_academico_ids.ids or 
@@ -110,10 +110,9 @@ class CanalSlide(models.Model):
             elif is_responsible_director:
                 record.can_manage_config = True 
             elif is_director_group and record.tipo_curso == 'asignatura':
-                # Mantenemos lógica anterior: Director general manda en asignaturas sueltas si tiene acceso
                 record.can_manage_config = True 
             else:
-                record.can_manage_config = False # Docente raso
+                record.can_manage_config = False # Docente 
 
             # 2. Financieros (Precio)
             record.can_see_financials = is_admin 
@@ -160,7 +159,7 @@ class CanalSlide(models.Model):
                 self.env.user.has_group('elearning_universidad.grupo_administrador_universidad')):
                 record.can_publish = True
 
-    # --- Roles Académicos --- (Domiios actualizados para seguridad)
+    # --- Roles Académicos --- 
     director_academico_ids = fields.Many2many(
         'res.users', 
         'slide_channel_director_rel', 
@@ -840,11 +839,6 @@ class CanalSlide(models.Model):
                 if registro.asignatura_ids:
                     raise ValidationError("Una 'Microcredencial' no puede contener 'Asignaturas'")
 
-
-
-
-
-
     
     def action_view_gradebook_students(self):
         """ Opens the list of students for this course in Gradebook mode """
@@ -927,7 +921,6 @@ class CanalSlide(models.Model):
                     'is_published': True,
                     'uom_id': self.env.ref('uom.product_uom_unit').id,
                     'uom_po_id': self.env.ref('uom.product_uom_unit').id,
-                    # Opcional: Asignar categoría contable específica si se requiere
                 })
                 self.sudo().write({'product_id': product.id})
             else:
@@ -948,19 +941,5 @@ class CanalSlide(models.Model):
             if self.product_id.active:
                 self.product_id.sudo().write({'active': False})
 
-    @api.constrains('enroll', 'channel_partner_ids')
-    def _check_paid_course_integrity(self):
-        """ 
-        Bloqueo (aunque soft) para intentos masivos. 
-        Nota: La restricción dura de 'No invitar' se maneja mejor ocultando botones,
-        ya que el checkout crea partners y no queremos romper eso.
-        """
-        pass # La restricción principal será visual (ocultar botones)
 
-    def action_channel_invite(self):
-        """ Sobrescitura para bloquear invitación en cursos de pago """
-        if self.enroll == 'payment':
-            raise ValidationError("En los cursos de pago NO se permite invitar usuarios manualmente. Deben comprar el curso.")
-        return super().action_channel_invite()
-    
 

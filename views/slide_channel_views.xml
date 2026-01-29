@@ -301,7 +301,7 @@
 
             <!-- GESTIÓN DE BOTONES DE INVITACIÓN (Solo Master/Micro) -->
             <xpath expr="//button[@name='action_channel_invite']" position="attributes">
-                 <attribute name="invisible">tipo_curso == 'asignatura' or enroll == 'payment'</attribute>
+                 <attribute name="invisible">tipo_curso == 'asignatura'</attribute>
             </xpath>
 
             <!-- BOTONES DE FLUJO DE PUBLICACIÓN EN CABECERA -->
