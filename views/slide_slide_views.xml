@@ -27,11 +27,6 @@
                 <label for="fecha_programada" string="Programar Publicación" invisible="is_published"/>
                 <div class="o_row" invisible="is_published">
                     <field name="fecha_programada" nolabel="1"/>
-                    <button name="action_programar_publicacion" 
-                            string="Confirmar" 
-                            type="object" 
-                            class="btn btn-link ms-2"
-                            invisible="not fecha_programada"/>
                     <span class="text-muted small ms-2" invisible="not fecha_programada">
                         <i class="fa fa-info-circle"/> Se publicará automáticamente.
                     </span>

@@ -259,13 +259,7 @@ class Slide(models.Model):
             })
             slide._propagar_publicacion_asignatura()
 
-    def action_programar_publicacion(self):
-        """ Confirma la programación (UX helper, la lógica real es el campo fecha_programada) """
-        for slide in self:
-            if not slide.fecha_programada:
-                raise ValidationError(_("Debe establecer una fecha programada antes de confirmar."))
-            if slide.is_published:
-                slide.is_published = False
+
 
     @api.constrains('fecha_programada')
     def _check_fecha_programada(self):
@@ -367,7 +361,10 @@ class Slide(models.Model):
         return slides
 
     def write(self, vals):
-
+        # Lógica Implícita: Si establecemos fecha programada, despublicamos automáticamente
+        if vals.get('fecha_programada'):
+            vals['is_published'] = False
+            
         res = super().write(vals)
         if 'es_evaluable' in vals and vals.get('es_evaluable'):
             self._asegurar_registros_seguimiento()
