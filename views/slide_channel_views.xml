@@ -181,8 +181,8 @@
                      </group>
                      <group>
                          <field name="master_id" 
-                                invisible="tipo_curso != 'asignatura' or context.get('locked_master_context') or is_exclusive_teacher" 
-                                readonly="not can_manage_config"/>
+                                invisible="tipo_curso != 'asignatura' or context.get('locked_master_context') or is_exclusive_teacher or not master_id" 
+                                readonly="1"/>
                      </group>
                  </group>
                  <group string="Certificación" invisible="tipo_curso == 'asignatura' or (not is_university_admin and not tiene_titulo)">
