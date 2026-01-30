@@ -18,7 +18,7 @@ class SlideSlidePartner(models.Model):
         ('evaluado', 'Evaluado')
     ], string='Estado de Evaluación', default='pendiente_presentar', required=True)
 
-    nota_evaluacion = fields.Float(string='Nota', default=0.0)
+    nota_evaluacion = fields.Float(string='Nota', default=0.0, digits=(16, 2))
     
     # --- Gestión de Entregas (Archivos) ---
     archivo_entrega = fields.Binary("Archivo Entregado")
@@ -78,7 +78,7 @@ class SlideSlidePartner(models.Model):
                             ('state', '=', 'done')
                         ], limit=1, order='create_date desc')
                          if user_input:
-                            vals['nota_evaluacion'] = (user_input.scoring_percentage / 100.0) * 10
+                            vals['nota_evaluacion'] = round((user_input.scoring_percentage / 100.0) * 10, 2)
                             vals['estado_evaluacion'] = 'evaluado' # AUTOMÁTICO
                             vals['fecha_entrega'] = fields.Datetime.now()
  
@@ -89,7 +89,7 @@ class SlideSlidePartner(models.Model):
                             ('scoring_success', '=', True)
                         ], limit=1, order='create_date desc')
                         if user_input:
-                            vals['nota_evaluacion'] = (user_input.scoring_percentage / 100.0) * 10
+                            vals['nota_evaluacion'] = round((user_input.scoring_percentage / 100.0) * 10, 2)
                             vals['estado_evaluacion'] = 'evaluado' # AUTOMÁTICO
                             vals['fecha_entrega'] = fields.Datetime.now()
         
@@ -159,6 +159,7 @@ class SlideChannelPartner(models.Model):
         compute='_compute_nota_academica', 
         store=True, 
         readonly=False,
+        digits=(16, 2),
         aggregator='avg'
     )
     
@@ -290,7 +291,7 @@ class SlideChannelPartner(models.Model):
             # Permitimos que el profesor evalúe los otros (feedback), pero no suman.
             evals = record.evaluaciones_ids.filtered(lambda x: x.slide_id.es_evaluable)
             if evals:
-                record.nota_final = sum(evals.mapped('nota_evaluacion')) / len(evals)
+                record.nota_final = round(sum(evals.mapped('nota_evaluacion')) / len(evals), 2)
             else:
                 record.nota_final = 0.0
         
@@ -370,7 +371,7 @@ class SlideChannelPartner(models.Model):
                     nota_acumulada += nota_asig
                 nota_acumulada = nota_acumulada / count if count > 0 else 0.0
             
-            record.nota_final = nota_acumulada
+            record.nota_final = round(nota_acumulada, 2)
 
     def accion_cerrar_acta(self):
         """ Cierra la nota final del curso/asignatura y dispara la certificación si procede """
