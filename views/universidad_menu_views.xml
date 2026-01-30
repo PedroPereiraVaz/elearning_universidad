@@ -253,7 +253,6 @@ else:
     </record>
 
     <!-- Títulos -->
-    <!-- Títulos -->
     <record id="action_universidad_titulos" model="ir.actions.act_window">
         <field name="name">Títulos Emitidos</field>
         <field name="res_model">slide.channel.partner</field>
