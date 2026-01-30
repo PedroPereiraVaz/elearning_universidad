@@ -267,6 +267,41 @@ class CanalSlide(models.Model):
 
             record.all_personal_docente_ids = docentes
 
+    # --- Campos de Visualización (Text Strings) para evitar problemas de ACL en Vistas ---
+    director_academico_names = fields.Char(string='Directores (Texto)', compute='_compute_staff_names', compute_sudo=True, store=True)
+    personal_docente_names = fields.Char(string='Docentes (Texto)', compute='_compute_staff_names', compute_sudo=True, store=True)
+
+    @api.depends('director_academico_ids', 'master_id.director_academico_ids', 'all_personal_docente_ids')
+    def _compute_staff_names(self):
+        for record in self:
+            # DIRECTORES: Bypass ORM/Domain filtering using explicit SQL to guarantee simple display visibility
+            # This ensures that if a user is linked in the DB, they show up, even if they lost the 'group' required by the domain.
+            dir_ids = set()
+            try:
+                # 1. Direct fetch from relation table for this channel
+                self.env.cr.execute("SELECT user_id FROM slide_channel_director_rel WHERE channel_id = %s", (record.id,))
+                dir_ids.update(row[0] for row in self.env.cr.fetchall())
+                
+                # 2. If it's an Asignatura (with Master), fetch from Master
+                if record.master_id:
+                    self.env.cr.execute("SELECT user_id FROM slide_channel_director_rel WHERE channel_id = %s", (record.master_id.id,))
+                    dir_ids.update(row[0] for row in self.env.cr.fetchall())
+                
+                if dir_ids:
+                    # Browse as sudo to read names
+                    directors = self.env['res.users'].sudo().browse(list(dir_ids))
+                    record.director_academico_names = ', '.join(directors.mapped('name'))
+                else:
+                    record.director_academico_names = ''
+            except Exception:
+                # Safe fallback to ORM if table doesn't exist yet (in memory)
+                # But logic dictates we stick to robust display.
+                # Just fallback to empty if crash.
+                record.director_academico_names = ''
+
+            # DOCENTES: Keep ORM logic as it was working fine
+            record.personal_docente_names = ', '.join(record.all_personal_docente_ids.mapped('name'))
+
     # --- Computes de Lógica Académica ---
     @api.depends('slide_ids.completion_time', 'master_id.slide_ids.completion_time', 'tipo_curso')
     def _compute_total_time(self):

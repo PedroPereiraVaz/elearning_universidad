@@ -254,4 +254,27 @@
         </xpath>
     </template>
 
+    <!-- 12. [NUEVO] Personalización del Sidebar del Curso (Responsables y Docentes) -->
+    <template id="course_sidebar_university_details" inherit_id="website_slides.course_sidebar">
+        <!-- 1. Reemplazar Responsable (user_id) con Directores y Docentes -->
+        <xpath expr="//tr[@t-if='channel.user_id']" position="replace">
+            <t t-set="fresh_channel" t-value="request.env['slide.channel'].sudo().browse(channel.id)"/>
+            <tr>
+                <th class="border-top-0" style="vertical-align: top;">Director Académico</th>
+                <td class="border-top-0">
+                    <span t-esc="fresh_channel.director_academico_names"/>
+                </td>
+            </tr>
+            <tr>
+                <th class="border-top-0" style="vertical-align: top;">Docentes</th>
+                <td class="border-top-0">
+                    <span t-esc="fresh_channel.personal_docente_names"/>
+                </td>
+            </tr>
+        </xpath>
+        <!-- 2. Ocultar Última Actualización -->
+        <xpath expr="//tr[.//t[@t-esc='channel.slide_last_update']]" position="replace"/>
+        <!-- 3. Ocultar Miembros -->
+        <xpath expr="//tr[.//t[@t-esc='channel.members_count']]" position="replace"/>
+    </template>
 </odoo>
