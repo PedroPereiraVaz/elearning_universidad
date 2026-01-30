@@ -76,14 +76,14 @@
                             invisible="tipo_curso_rel != 'asignatura' or estado_nota not in ['pendiente_presentar', 'pendiente_revision']"/>
                     <button name="action_issue_university_degree" string="Emitir Título" type="object" class="btn-success"
                             invisible="not tiene_titulo_curso or estado_nota != 'evaluado' or not titulo_emitido == False"/>
-                                        <!-- Para Masters y Microcredenciales: Flujo Completo -->
-                    <field name="estado_nota" widget="statusbar" 
-                           invisible="tipo_curso_rel == 'asignatura'"
+                    <!-- Para Masters y Microcredenciales: Flujo Completo -->
+                   <field name="estado_nota" widget="statusbar" 
+                           invisible="tipo_curso_rel == 'asignatura' or not tiene_titulo_curso"
                            statusbar_visible="pendiente_revision,evaluado,pendiente_certificar,certificado"/>
                     
-                    <!-- Para Asignaturas: Flujo Simple (Sin Certificación) -->
-                    <field name="estado_nota" widget="statusbar" 
-                           invisible="tipo_curso_rel != 'asignatura'"
+                    <!-- Para Asignaturas o cursos sin titulo: Flujo Simple (Sin Certificación) -->
+                   <field name="estado_nota" widget="statusbar" 
+                           invisible="tipo_curso_rel != 'asignatura' and tiene_titulo_curso"
                            statusbar_visible="pendiente_revision,evaluado"/>
                 </header>
                 <sheet>
