@@ -652,9 +652,15 @@ class CanalSlide(models.Model):
     def _onchange_enroll_payment(self):
         """ Obliga a definir el nombre antes de marcar como pago y sugiere el precio """
         if self.enroll == 'payment':
-            if not self.name:
+            # Requisito: Debe estar guardado (tener ID) y tener nombre
+            if not self.name or not self._origin:
                 self.enroll = 'invite'
-                return {'warning': {'title': 'Nombre Requerido', 'message': 'Debe asignar el nombre del curso antes de configurarlo como De Pago para poder generar el producto correctamente.'}}
+                return {
+                    'warning': {
+                        'title': 'Acción Requerida', 
+                        'message': 'Para configurar un curso como "De Pago", primero debe asignarle un Nombre y Guardarlo.'
+                    }
+                }
             
             # Si ya tenemos precio y nombre, intentamos pre-sincronizar visualmente
             # NOTA: No creamos el producto en DB aquí para evitar huérfanos, 
