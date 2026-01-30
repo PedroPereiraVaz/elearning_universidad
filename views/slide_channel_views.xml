@@ -189,6 +189,7 @@
                       <group>
                           <field name="tiene_titulo" readonly="not is_university_admin" force_save="1"/>
                           <field name="plantilla_titulo" invisible="not tiene_titulo" required="tiene_titulo" readonly="not is_university_admin"/>
+                          <field name="politica_emision" invisible="not tiene_titulo" widget="radio" required="tiene_titulo" readonly="not is_university_admin"/>
                       </group>
                       <group>
                           <field name="fecha_programada_publicacion" invisible="1"/>

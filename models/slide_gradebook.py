@@ -1,5 +1,9 @@
 from odoo import models, fields, api, _
 from odoo.exceptions import ValidationError
+import base64
+import logging
+
+_logger = logging.getLogger(__name__)
 
 class SlideSlidePartner(models.Model):
     _inherit = 'slide.slide.partner'
@@ -101,7 +105,8 @@ class SlideSlidePartner(models.Model):
         return super().write(vals)
 
 class SlideChannelPartner(models.Model):
-    _inherit = 'slide.channel.partner'
+    _name = 'slide.channel.partner'
+    _inherit = ['slide.channel.partner', 'mail.thread', 'mail.activity.mixin']
 
     @api.model_create_multi
     def create(self, vals_list):
@@ -397,52 +402,259 @@ class SlideChannelPartner(models.Model):
             # Cambiamos a evaluado
             record.estado_nota = 'evaluado'
             
-            # Si el curso emite título y el alumno ha aprobado, pasamos a pendiente de certificar
+            # Si el curso emite título y el alumno ha aprobado
             if record.channel_id.tiene_titulo and record.nota_final >= 5.0 and not record.titulo_emitido:
-                record.estado_nota = 'pendiente_certificar'
+                # POLITICA DE EMISION:
+                # Automática: Pasa directo a 'pendiente_certificar' (para que el CRON lo recoja)
+                # Manual: Se queda en 'evaluado', esperando que el admin pulse "Emitir Título"
+                if record.channel_id.politica_emision == 'automatica':
+                    record.estado_nota = 'pendiente_certificar'
 
     def action_issue_university_degree(self):
-        """ Emisión manual de títulos universitarios """
+        """ Emisión manual de títulos universitarios (Paso a cola de emisión) """
         self.ensure_one()
-        if self.estado_nota != 'pendiente_certificar':
-            raise ValidationError("No se puede emitir un título si el acta no está en estado 'Evaluado'.")
+        # CASO 1: Si pulsamos el botón en estado 'evaluado' (flujo manual), lo pasamos a cola
+        if self.estado_nota == 'evaluado':
+             if self.nota_final < 5.0:
+                raise ValidationError("El alumno no ha superado satisfactoriamente el curso (Nota < 5.0).")
+             
+             self.estado_nota = 'pendiente_certificar'
+             return {
+                'type': 'ir.actions.client',
+                'tag': 'display_notification',
+                'params': {
+                    'title': 'Encolado para Emisión',
+                    'message': f'El título para {self.partner_id.name} se ha puesto en cola. Se generará en breves momentos.',
+                    'type': 'success',
+                }
+            }
         
-        if self.nota_final < 5.0:
-            raise ValidationError("El alumno no ha superado satisfactoriamente el curso (Nota < 5.0).")
-            
-        # Aquí iría la lógica de generación de PDF que recuperaremos más adelante
+        # CASO 2: Si por alguna razón forzamos la regeneración (ya certificado o pendiente)
+        # Dejamos que el CRON o una acción explícita 'force_generate' lo maneje.
+        # Por ahora, el comportamiento estándar del botón es "Aprobar emisión".
+        return
+
+    @api.model
+    def _cron_emitir_titulos_pendientes(self):
+        """ CRON para emitir títulos de alumnos aptos de forma asíncrona y generar PDF """
+        inscripciones = self.search([
+            ('estado_nota', '=', 'pendiente_certificar'),
+            ('titulo_emitido', '=', False)
+        ], limit=50) 
+        
+        for inscripcion in inscripciones:
+            try:
+                # 1. Generar PDF usando el layout seleccionado en el curso
+                layout = inscripcion.channel_id.plantilla_titulo or 'modern_gold'
+                
+                # Creamos un survey.user_input FAKE o usamos uno existente si hubiera
+                # Pero para simplificar, usaremos el motor de reportes de Survey directamente si es posible,
+                # o simularemos los datos que espera la plantilla.
+                # Las plantillas de certificación de Odoo esperan un objeto 'survey.user_input'.
+                # Si no tenemos uno real (porque es un Master sin examen final tipo survey), debemos crear uno dummy
+                # o adaptar la llamada.
+                
+                # ESTRATEGIA: Crear un registro dummy en survey.user_input asociado a una certificación "virtual"
+                # O reutilizar el mecanismo de renderizado. 
+                # Para ser robustos y usar el estándar, crearemos un input temporal asociado a los datos del curso.
+                
+                # Problema: Necesitamos un survey_id. 
+                # Solución: Si el curso tiene un slide tipo 'certification', usamos ese survey.
+                # Si NO (ej. un Master calificado por asignaturas), necesitamos una "Certificación Genérica" o crear el PDF manualmente.
+                # EL USUARIO DIJO: "ya en las opciones del curso seleccione emitir titulo y seleccione la plantilla".
+                # Odoo por defecto asocia la plantilla AL SURVEY. Si el usuario lo seleccionó EN EL CURSO, 
+                # es un custom field nuestro 'plantilla_titulo'.
+                
+                # Vamos a usar el report 'survey.certification_report' pasando IDs de slide.channel.partner
+                # PERO ese reporte espera 'survey.user_input'.
+                # TRAMPA: Heredaremos o crearemos un reporte propio que acepte slide.channel.partner?
+                # NO. El usuario quiere "usar las plantillas de certificados".
+                
+                # OPCIÓN VIABLE: Renderizar la plantilla QWEB directamente pasando los valores en 'docs'.
+                # Las plantillas qweb de survey (ej. survey_certification_report_view.xml) usan 'user_input' como variable.
+                # Podemos pasar un objeto Mock que tenga los campos que la plantilla usa (partner_id, scoring_percentage, test_entry, etc.)
+                
+                # MOCK CLASS local para engañar a la plantilla QWeb
+                class CertificationMock:
+                    def __init__(self, partner, channel, score, date, layout):
+                        self.partner_id = partner
+                        self.scoring_percentage = score * 10 # Sobre 100
+                        self.scoring_total = 100
+                        self.survey_id = type('obj', (object,), {'title': channel.name, 'certification_report_layout': layout})
+                        self.test_entry = False # Para que no salga "Test"
+                        self.create_date = date
+                        self.user_input_line_ids = [] # Sin respuestas detalladas
+                        
+                mock_input = CertificationMock(
+                    inscripcion.partner_id, 
+                    inscripcion.channel_id, 
+                    inscripcion.nota_final, 
+                    fields.Datetime.now(),
+                    layout
+                )
+                
+                # Renderizar PDF (Binario)
+                # Odoo 16/17 usa _render_qweb_pdf. El nombre del report externo suele ser 'survey.certification_report'.
+                # Pero al pasar un objeto custom, la llamada estándar ir.actions.report no funcionará directo con IDs.
+                # Debemos renderizar el HTML y luego PDF.
+                
+                # HACK MEJORADO: ¿Y si creamos un survey.user_input REAL?
+                # Es más seguro para persistencia.
+                # 1. Buscamos/Creamos un survey "wrapper" para el título del Master (si no existe)
+                # 1. Buscamos/Creamos un survey "wrapper" para el título del Master (si no existe)
+                # Usamos el nombre exacto del curso para que en el certificado salga bien (ej. "Master en Data Science")
+                survey_title = inscripcion.channel_id.name
+                survey = self.env['survey.survey'].sudo().search([('title', '=', survey_title)], limit=1)
+                
+                if not survey:
+                    survey = self.env['survey.survey'].sudo().create({
+                        'title': survey_title,
+                        'certification': True,
+                        'scoring_type': 'scoring_without_answers', # Odoo a veces re-computa
+                        'certification_report_layout': layout,
+                        'scoring_success_min': 0.0, 
+                    })
+                
+                # HACK: Asegurar que el survey tenga AL MENOS una pregunta puntuable, 
+                # de lo contrario scoring_percentage siempre será 0 (Odoo lo calcula sobre el total de puntos posibles)
+                # Si el survey es nuevo o no tiene preguntas, creamos una oculta.
+                if not survey.question_ids:
+                    self.env['survey.question'].sudo().create({
+                        'survey_id': survey.id,
+                        'title': 'Nota de Expediente',
+                        'question_type': 'numerical_box',
+                        'answer_score': 10.0, # Max score 10
+                        'is_scored_question': True,
+                        'sequence': 0,
+                    })
+
+                # Asegurar que el layout es el correcto si cambiaron la configuración
+                if survey.certification_report_layout != layout:
+                    survey.write({'certification_report_layout': layout})
+
+                # 2. Creamos el input finalizado
+                user_input = self.env['survey.user_input'].sudo().create({
+                    'survey_id': survey.id,
+                    'partner_id': inscripcion.partner_id.id,
+                    'state': 'done',
+                })
+
+                # 3. Crear línea de respuesta para forzar la nota de forma natural
+                # Buscamos la pregunta puntuable (la que acabamos de crear o la que hubiera)
+                question = survey.question_ids[0]
+                self.env['survey.user_input.line'].sudo().create({
+                    'user_input_id': user_input.id,
+                    'question_id': question.id,
+                    'answer_type': 'numerical_box',
+                    'value_numerical_box': inscripcion.nota_final, # Ej. 8.5
+                    'answer_score': inscripcion.nota_final # Esto Odoo lo usa para sumar
+                })
+                
+                # Forzamos Success por seguridad (aunque el min=0 debería bastar) y recalcualamos
+                # Odoo debería calcular scoring_percentage = (8.5 / 10) * 100 = 85.0
+                user_input.write({'scoring_success': True})
+                
+                # 3. Generar PDF (Con contexto de IDIOMA del alumno)
+                # Importante: Pasar el contexto en la llamada
+                pdf_content, _ = self.env['ir.actions.report'].with_context(lang=inscripcion.partner_id.lang).sudo()._render_qweb_pdf(
+                    'survey.certification_report', 
+                    [user_input.id],
+                    data={'report_type': 'pdf'}
+                )
+                
+                # 4. Adjuntar al registro de inscripción
+                filename = f"Titulo_{inscripcion.channel_id.name}_{inscripcion.partner_id.name}.pdf".replace(" ", "_")
+                attachment = self.env['ir.attachment'].create({
+                    'name': filename,
+                    'type': 'binary',
+                    'datas': base64.b64encode(pdf_content),
+                    'res_model': 'slide.channel.partner',
+                    'res_id': inscripcion.id,
+                    'mimetype': 'application/pdf'
+                })
+                
+                # 5. Guardar referencia y actualizar estado
+                inscripcion.sudo().write({
+                    'estado_nota': 'certificado',
+                    'titulo_emitido': True,
+                    'fecha_emision_titulo': fields.Datetime.now(),
+                    'survey_user_input_id': user_input.id 
+                })
+                
+            except Exception as e:
+                # Log error
+                _logger.error(f"Error generando título para {inscripcion.id}: {str(e)}")
+                continue
+
+    def action_download_certificate(self):
+        """ Acción para descargar el certificado PDF adjunto """
+        self.ensure_one()
+        # Buscar el adjunto más reciente generado para este modelo y ID
+        # Se asume que el nombre comienza con "Titulo_" o simplemente el último PDF adjunto
+        attachment = self.env['ir.attachment'].search([
+            ('res_model', '=', 'slide.channel.partner'),
+            ('res_id', '=', self.id),
+            ('mimetype', '=', 'application/pdf')
+        ], order='create_date desc', limit=1)
+
+        if not attachment:
+             # Si no hay adjunto, lanzamos notificación
+             return {
+                'type': 'ir.actions.client',
+                'tag': 'display_notification',
+                'params': {
+                    'title': 'Certificado no encontrado',
+                    'message': 'No se ha encontrado el archivo PDF del certificado. Contacte con administración.',
+                    'type': 'warning',
+                }
+            }
+        
+        # Redirigir a la URL de descarga directa
+        return {
+            'type': 'ir.actions.act_url',
+            'url': f'/web/content/{attachment.id}?download=true',
+            'target': 'self',
+        }
+
+    def action_regenerate_certificate(self):
+        """ Permite a un administrador regenerar el título si hubo un error """
+        self.ensure_one()
+        if not self.env.user.has_group('elearning_universidad.grupo_administrador_universidad'):
+             raise ValidationError("Solo los administradores pueden regenerar títulos.")
+        
+        # Eliminamos adjuntos previos de tipo PDF para evitar confusión
+        adjuntos = self.env['ir.attachment'].search([
+            ('res_model', '=', 'slide.channel.partner'),
+            ('res_id', '=', self.id),
+            ('mimetype', '=', 'application/pdf'),
+            ('name', 'like', 'Titulo_%') 
+        ])
+        adjuntos.unlink()
+
+        # Eliminamos el registro de certificación antiguo si existe
+        if self.survey_user_input_id:
+            try:
+                self.survey_user_input_id.sudo().unlink()
+            except Exception:
+                 pass # Si no se puede borrar (ej. integridad), lo desvinculamos al escribir False abajo
+
+        # Reseteamos estado para que el CRON lo vuelva a coger
+        self.write({
+            'titulo_emitido': False,
+            'estado_nota': 'pendiente_certificar',
+            'fecha_emision_titulo': False
+        })
+        
         return {
             'type': 'ir.actions.client',
             'tag': 'display_notification',
             'params': {
-                'title': 'Título Generado',
-                'message': f'El título para {self.partner_id.name} ha sido generado correctamente.',
+                'title': 'Regeneración Solicitada',
+                'message': 'El título se ha vuelto a encolar. Estará disponible en unos minutos.',
                 'type': 'success',
             }
         }
 
-    @api.model
-    def _cron_emitir_titulos_pendientes(self):
-        """ CRON para emitir títulos de alumnos aptos de forma asíncrona """
-        inscripciones = self.search([
-            ('estado_nota', '=', 'pendiente_certificar'),
-            ('titulo_emitido', '=', False)
-        ], limit=50) # Procesamos en bloques para evitar timeouts
-        
-        for inscripcion in inscripciones:
-            try:
-                # 1. Ejecutar emisión (delegamos en el método manual para reutilizar lógica)
-                inscripcion.sudo().action_issue_university_degree()
-                
-                # 2. Marcar como certificado y registrar fecha
-                inscripcion.sudo().write({
-                    'estado_nota': 'certificado',
-                    'titulo_emitido': True,
-                    'fecha_emision_titulo': fields.Datetime.now()
-                })
-            except Exception as e:
-                # Loguear error pero continuar con el siguiente
-                continue
     def action_open_gradebook_form(self):
         """ Abre la vista formulario de esta inscripción específica (usado en botones) """
         self.ensure_one()

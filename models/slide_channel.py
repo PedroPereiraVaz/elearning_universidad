@@ -234,6 +234,12 @@ class CanalSlide(models.Model):
         default='modern_gold'
     )
 
+    politica_emision = fields.Selection([
+        ('automatica', 'Automática (al cerrar acta)'),
+        ('manual', 'Manual (requiere validación)')
+    ], string='Política de Emisión', default='manual',  help="Define si el título se encola automáticamente al aprobar el curso o requiere validación manual.")
+
+
     # --- Campo para OPTIMIZAR REGLAS DE SEGURIDAD ---
     # Este campo almacena TODOS los docentes vinculados a este curso (directos + heredados de asignaturas)
     # Permite simplificar las reglas de registro y evitar joins complejos o recursiones.

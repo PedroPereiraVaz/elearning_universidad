@@ -163,6 +163,61 @@
         </field>
     </record>
 
+    <!-- ============================================================ -->
+    <!-- VISTAS PARA TÍTULOS EMITIDOS (READONLY - CERTIFICADOS) -->
+    <!-- ============================================================ -->
+    <record id="view_slide_channel_partner_form_certificate" model="ir.ui.view">
+        <field name="name">slide.channel.partner.form.certificate</field>
+        <field name="model">slide.channel.partner</field>
+        <field name="arch" type="xml">
+            <form string="Título Universitario" create="0" edit="0" delete="0">
+                <header>
+                    <button name="action_download_certificate" string="Descargar Título PDF" type="object" class="btn-primary" icon="fa-download"/>
+                    <button name="action_regenerate_certificate" string="Regenerar" type="object" class="btn-secondary" groups="elearning_universidad.grupo_administrador_universidad" confirm="¿Seguro que desea regenerar este título? El actual se borrará."/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                    </div>
+                    <widget name="web_ribbon" title="Certificado" bg_color="bg-success"/>
+                    <div class="oe_title">
+                        <h1><field name="partner_id" readonly="1"/></h1>
+                        <h3><field name="channel_id" readonly="1"/></h3>
+                    </div>
+                    <group>
+                        <group string="Detalles de Emisión">
+                            <field name="titulo_emitido" readonly="1"/>
+                            <field name="fecha_emision_titulo" readonly="1"/>
+                            <field name="survey_user_input_id" readonly="1" string="Referencia Examen" groups="base.group_no_one"/>
+                        </group>
+                        <group string="Evaluación">
+                            <field name="nota_final" readonly="1" widget="float"/>
+                            <field name="estado_nota" readonly="1" widget="badge" decoration-success="estado_nota == 'certificado'"/>
+                        </group>
+                    </group>
+
+                </sheet>
+                <chatter>
+                    <field name="message_follower_ids"/>
+                    <field name="message_ids"/>
+                </chatter>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_slide_channel_partner_tree_certificate" model="ir.ui.view">
+        <field name="name">slide.channel.partner.tree.certificate</field>
+        <field name="model">slide.channel.partner</field>
+        <field name="arch" type="xml">
+            <list string="Títulos Emitidos" create="0" delete="0" edit="0" type="object">
+                <field name="partner_id" string="Alumno"/>
+                <field name="channel_id" string="Curso"/>
+                <field name="fecha_emision_titulo"/>
+                <field name="nota_final" widget="float" optional="hide"/>
+                <field name="estado_nota" widget="badge" decoration-success="estado_nota == 'certificado'"/>
+            </list>
+        </field>
+    </record>
+
 
     <!-- ============================================================ -->
     <!-- 4. VISTAS AUXILIARES (Legacy limpias o reutlizadas) -->

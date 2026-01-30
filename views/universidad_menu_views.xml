@@ -253,11 +253,14 @@ else:
     </record>
 
     <!-- Títulos -->
+    <!-- Títulos -->
     <record id="action_universidad_titulos" model="ir.actions.act_window">
         <field name="name">Títulos Emitidos</field>
         <field name="res_model">slide.channel.partner</field>
-        <field name="view_mode">kanban,list,form</field>
-        <field name="view_id" ref="elearning_universidad.view_slide_channel_partner_tree_gradebook"/>
+        <field name="view_mode">list,form</field>
+        <field name="view_ids" eval="[(5, 0, 0),
+            (0, 0, {'view_mode': 'list', 'view_id': ref('elearning_universidad.view_slide_channel_partner_tree_certificate')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('elearning_universidad.view_slide_channel_partner_form_certificate')})]"/>
         <field name="domain">[('titulo_emitido', '=', True)]</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">No hay títulos emitidos.</p>
@@ -284,13 +287,27 @@ else:
         ])]"/>
     </record>
 
-    <!-- MENÚS (Apuntando a los Dispatchers) -->
-    <menuitem id="menu_universidad_admin_revision" 
-              name="Revisión" 
+    <!-- EMISIÓN DE TÍTULOS -->
+    <record id="action_degree_issuance_pending" model="ir.actions.act_window">
+        <field name="name">Títulos Pendientes de Emitir</field>
+        <field name="res_model">slide.channel.partner</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('estado_nota', '=', 'pendiente_certificar')]</field>
+        <field name="view_id" ref="view_slide_channel_partner_tree_gradebook"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No hay títulos pendientes de emisión manual o automática.
+            </p>
+        </field>
+    </record>
+
+    <menuitem id="menu_universidad_admin_revision"
+              name="Revisión"
               parent="website_slides.website_slides_menu_root"
               action="action_universidad_revision"
-              sequence="1" 
+              sequence="1"
               groups="elearning_universidad.grupo_administrador_universidad"/>
+
 
     <menuitem id="menu_universidad_formaciones_root"
               name="Formaciones"
@@ -349,7 +366,14 @@ else:
               name="Títulos"
               parent="menu_universidad_evaluacion_root"
               action="action_universidad_titulos"
-              sequence="3"
+              sequence="4"
               groups="elearning_universidad.grupo_director_academico,elearning_universidad.grupo_administrador_universidad"/>
+
+        <menuitem id="menu_university_issuance_pending_moved"
+                  name="Títulos Pendientes de Emitir"
+                  parent="menu_universidad_evaluacion_root"
+                  action="action_degree_issuance_pending"
+                  sequence="3"
+                  groups="elearning_universidad.grupo_administrador_universidad,elearning_universidad.grupo_director_academico"/>
 
 </odoo>
