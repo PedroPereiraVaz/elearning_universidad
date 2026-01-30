@@ -65,7 +65,7 @@
                                 <t t-if="enrollment.estado_nota in ['evaluado', 'pendiente_certificar', 'certificado']">
                                     <div class="d-flex flex-column align-items-end">
                                         <span class="small text-muted text-uppercase fw-bold" style="font-size: 0.75rem;">Nota Final</span>
-                                        <span class="badge bg-primary fs-5" t-field="enrollment.nota_final" t-options='{"widget": "float", "precision": 2}'/>
+                                        <span class="badge bg-primary fs-5" t-field="enrollment.nota_final"/>
                                     </div>
                                 </t>
                                 <t t-else="">
@@ -87,7 +87,7 @@
                                                         <div class="d-flex w-100 justify-content-between me-3 align-items-center">
                                                             <span class="fw-bold" t-field="asig.channel_id.name"/>
                                                             <t t-if="asig.estado_nota in ['evaluado', 'pendiente_certificar', 'certificado']">
-                                                                <span class="badge bg-success" t-field="asig.nota_final" t-options='{"widget": "float", "precision": 2}'/>
+                                                                <span class="badge bg-success" t-field="asig.nota_final"/>
                                                             </t>
                                                             <t t-else="">
                                                                 <span class="badge bg-light text-muted border">En Curso</span>
@@ -190,7 +190,7 @@
                                 </t>
                             </td>
                             <td class="pe-3 text-end">
-                                <span class="fs-5 fw-bold" t-field="content.nota_evaluacion" t-options='{"widget": "float", "precision": 2}'/>
+                                <span class="fs-5 fw-bold" t-field="content.nota_evaluacion"/>
                                 <span class="text-muted small">/ 10</span>
                             </td>
                         </tr>
