@@ -286,7 +286,7 @@ class CanalSlide(models.Model):
         for curso in self:
             if curso.enroll == 'payment' and curso.precio_curso > 0 and curso.tipo_curso in ['master', 'microcredencial']:
                 if not curso.product_id:
-                    # CREAR PRODUCTO
+                    # CREAR PRODUCTO (Fallback por si se llama manual o update)
                     product = self.env['product.product'].sudo().create({
                         'name': curso.name,
                         'list_price': curso.precio_curso,
@@ -630,11 +630,29 @@ class CanalSlide(models.Model):
                 })
                 
                 # HERENCIA SERVER-SIDE DE DIRECTORES (Blindaje extra si el campo es invisible)
-                # Si no vienen directores, pero hay master_id, los copiamos
                 if 'director_academico_ids' not in vals and vals.get('master_id'):
                     master = self.env['slide.channel'].browse(vals['master_id'])
                     if master.director_academico_ids:
                         vals['director_academico_ids'] = [(6, 0, master.director_academico_ids.ids)]
+
+            # FIX: Pre-creación de Producto para Cursos de Pago
+            # Odoo exige 'product_id' si enroll='payment' al crear el registro.
+            if vals.get('enroll') == 'payment' and not vals.get('product_id'):
+                # Usamos los valores disponibles en vals
+                name = vals.get('name') or 'Curso Universitario'
+                price = vals.get('precio_curso', 0.0)
+                
+                product = self.env['product.product'].sudo().create({
+                    'name': name,
+                    'list_price': price,
+                    'type': 'service',
+                    'service_tracking': 'course',
+                    'invoice_policy': 'order',
+                    'is_published': True,
+                    'uom_id': self.env.ref('uom.product_uom_unit').id,
+                    'uom_po_id': self.env.ref('uom.product_uom_unit').id,
+                })
+                vals['product_id'] = product.id
 
         cursos = super().create(vals_list)
         # Sincronización producto y SLIDES DE MASTER
@@ -652,13 +670,14 @@ class CanalSlide(models.Model):
     def _onchange_enroll_payment(self):
         """ Obliga a definir el nombre antes de marcar como pago y sugiere el precio """
         if self.enroll == 'payment':
-            # Requisito: Debe estar guardado (tener ID) y tener nombre
-            if not self.name or not self._origin:
+            # Requisito: Debe tener Nombre (aunque no esté guardado aún)
+            # Quitamos 'not self._origin' para permitir flujo: Poner Nombre -> Poner Pago -> Guardar
+            if not self.name:
                 self.enroll = 'invite'
                 return {
                     'warning': {
-                        'title': 'Acción Requerida', 
-                        'message': 'Para configurar un curso como "De Pago", primero debe asignarle un Nombre y Guardarlo.'
+                        'title': 'Nombre Requerido', 
+                        'message': 'Para configurar un curso como "De Pago", primero debe escribir un Nombre para el curso.'
                     }
                 }
             
