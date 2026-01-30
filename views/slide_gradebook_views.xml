@@ -49,7 +49,7 @@
                 <field name="channel_id" string="Curso"/>
                 <!-- Eliminado gradebook_master_id visualmente -->
                 <field name="gradebook_master_id" column_invisible="True"/> 
-                <field name="nota_final" widget="float" string="Nota Académica"/>
+                <field name="nota_final" widget="float" options="{'precision': 2}" string="Nota Académica"/>
                 <field name="estado_nota" widget="badge" 
                        decoration-warning="estado_nota == 'pendiente_revision'" 
                        decoration-success="estado_nota in ['evaluado', 'certificado']"/>
@@ -99,7 +99,7 @@
                     <group>
                         <group string="Resumen">
                             <!-- Nota solo editable si se activa corrección manual -->
-                            <field name="nota_final" widget="float" 
+                            <field name="nota_final" widget="float" options="{'precision': 2}" 
                                    readonly="not nota_manual" force_save="1"/>
                             
                             <!-- Toggle Corrección Manual: Oculto si es Master, si ya está cerrada, o SIN PERMISO -->
@@ -122,7 +122,7 @@
                                 <!-- ACTION: Click en fila abre Popup. Botón Evaluar abre pantalla completa. -->
                                 <list string="Asignaturas" create="0" delete="0" edit="1" action="action_open_gradebook_form" type="object">
                                     <field name="channel_id" string="Asignatura"/>
-                                    <field name="nota_final" widget="float" string="Nota (0-10)"/>
+                                    <field name="nota_final" widget="float" options="{'precision': 2}" string="Nota (0-10)"/>
                                     <field name="estado_nota" widget="badge" decoration-success="estado_nota == 'evaluado'"/>
                                     <button name="action_open_gradebook_form" type="object" string="Evaluar" icon="fa-external-link" class="btn-primary"/>
                                 </list>
@@ -144,7 +144,7 @@
                                     <field name="nombre_archivo" column_invisible="True"/>
                                     
                                     <!-- Calificación (Solo editable si no está confirmado) -->
-                                    <field name="nota_evaluacion" string="Calificación" readonly="estado_evaluacion == 'evaluado'"/>
+                                    <field name="nota_evaluacion" widget="float" options="{'precision': 2}" string="Calificación" readonly="estado_evaluacion == 'evaluado'"/>
                                     
                                     <field name="estado_evaluacion" widget="badge" 
                                            decoration-info="estado_evaluacion == 'pendiente_presentar'"
@@ -180,7 +180,7 @@
                 <field name="fecha_entrega" readonly="1"/>
                 <field name="nombre_archivo" column_invisible="True"/>
                 <field name="archivo_entrega" widget="binary" filename="nombre_archivo" string="Entrega" readonly="1"/>
-                <field name="nota_evaluacion" string="Calificación"/>
+                <field name="nota_evaluacion" widget="float" options="{'precision': 2}" string="Calificación"/>
                 <field name="estado_evaluacion" widget="badge" decoration-warning="estado_evaluacion == 'pendiente_revision'"/>
                 <button name="accion_confirmar_nota" string="Confirmar nota" type="object" icon="fa-check-circle" class="btn-sm btn-success" title="Confirmar esta nota"/>
             </list>
