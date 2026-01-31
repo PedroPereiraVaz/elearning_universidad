@@ -53,3 +53,43 @@ class UniversityPortal(CustomerPortal):
             'default_url': '/my/grades',
         })
         return request.render("elearning_universidad.portal_my_grades", values)
+
+    @http.route(['/my/grades/certificate/<int:gradebook_id>'], type='http', auth="user", website=True)
+    def portal_my_grade_certificate(self, gradebook_id, download=False, **kw):
+        """ Allow students to download/preview their certificate """
+        # 1. Fetch record con seguridad explícita (sudo + ownership check)
+        gradebook = request.env['slide.channel.partner'].sudo().browse(gradebook_id)
+        
+        # 2. Verificar existencia y propiedad
+        if not gradebook.exists() or gradebook.partner_id != request.env.user.partner_id:
+            return request.not_found()
+            
+        # 3. Verificar si tiene título emitido
+        if not gradebook.titulo_emitido:
+            return request.redirect('/my/grades')
+
+        # 4. Buscar PDF adjunto (misma lógica que backend)
+        attachment = request.env['ir.attachment'].sudo().search([
+            ('res_model', '=', 'slide.channel.partner'),
+            ('res_id', '=', gradebook.id),
+            ('mimetype', '=', 'application/pdf')
+        ], order='create_date desc', limit=1)
+
+        if not attachment:
+            # Fallback elegante si no hay adjunto físico
+            return request.not_found()
+
+        # 5. Servir archivo
+        # 'inline' para preview (navegador), 'attachment' para forzar descarga
+        disposition = 'attachment' if download else 'inline'
+        
+        # Forzamos los headers correctos para la respuesta
+        headers = [
+            ('Content-Type', 'application/pdf'),
+            ('Content-Disposition', f'{disposition}; filename={attachment.name}'),
+        ]
+        
+        return request.make_response(
+            attachment.raw,
+            headers=headers
+        )

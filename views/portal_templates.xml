@@ -61,15 +61,15 @@
                                     <span class="badge bg-light text-primary border" t-field="enrollment.channel_id.tipo_curso"/>
                                 </div>
                             </div>
-                            <div class="text-end">
+                            <div class="text-end d-flex gap-2 align-items-center">
                                 <t t-if="enrollment.estado_nota in ['evaluado', 'pendiente_certificar', 'certificado']">
-                                    <div class="d-flex flex-column align-items-end">
+                                    <div class="d-flex flex-column align-items-end ms-2">
                                         <span class="small text-muted text-uppercase fw-bold" style="font-size: 0.75rem;">Nota Final</span>
                                         <span class="badge bg-primary fs-5" t-field="enrollment.nota_final"/>
                                     </div>
                                 </t>
                                 <t t-else="">
-                                    <span class="badge bg-warning text-dark">En Progreso</span>
+                                    <span class="badge bg-warning text-dark ms-2">En Progreso</span>
                                 </t>
                             </div>
                         </div>
@@ -77,6 +77,34 @@
                         <!-- Cuerpo Colapsable -->
                         <div t-att-id="'course_collapse_' + str(enrollment.id)" class="collapse">
                             <div class="card-body p-0 border-top">
+                                <!-- CERTIFICATE CARD (Premium Box) -->
+                                <t t-if="enrollment.titulo_emitido">
+                                    <div class="p-4 bg-warning bg-opacity-10 border-bottom d-flex align-items-center justify-content-between">
+                                        <div class="d-flex align-items-center gap-3">
+                                            <div class="bg-white p-3 rounded-circle shadow-sm text-warning d-flex justify-content-center align-items-center"
+                                                 style="width: 60px; height: 60px;">
+                                                <i class="fa fa-certificate fa-2x"/>
+                                            </div>
+                                            <div>
+                                                <h5 class="mb-1 fw-bold text-dark">Título: <span t-field="enrollment.channel_id.name"/></h5>
+                                                <div class="text-muted small">
+                                                    <i class="fa fa-calendar me-1"/> Emitido el <span t-field="enrollment.fecha_emision_titulo" t-options='{"widget": "date"}'/>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="d-flex gap-2">
+                                            <a t-attf-href="/my/grades/certificate/#{enrollment.id}" target="_blank" 
+                                               class="btn btn-light border shadow-sm text-dark fw-bold px-3">
+                                                <i class="fa fa-eye me-2 text-primary"/> Vista Previa
+                                            </a>
+                                            <a t-attf-href="/my/grades/certificate/#{enrollment.id}?download=true" 
+                                               class="btn btn-warning text-dark fw-bold px-3 shadow-sm">
+                                                <i class="fa fa-download me-2"/> Descargar PDF
+                                            </a>
+                                        </div>
+                                    </div>
+                                </t>
+
                                 <!-- MASTER: Desglose de Asignaturas -->
                                 <t t-if="enrollment.channel_id.tipo_curso == 'master'">
                                     <div class="accordion accordion-flush" t-att-id="'accordion_' + str(enrollment.id)">
