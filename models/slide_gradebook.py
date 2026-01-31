@@ -222,7 +222,6 @@ class SlideChannelPartner(models.Model):
     )
 
     # --- Jerarquía y Navegación (Master -> Asignaturas) ---
-    # --- Jerarquía y Navegación (Master -> Asignaturas) ---
     # Smart Grouping: Si es Master, se agrupa consigo mismo. Si es Asignatura, con su Master.
     gradebook_master_id = fields.Many2one('slide.channel', string='Agrupación (Master)', compute='_compute_gradebook_master_id', store=True)
     
@@ -668,7 +667,7 @@ class SlideChannelPartner(models.Model):
             'res_id': self.id,
             'view_mode': 'form',
             'view_id': self.env.ref('elearning_universidad.view_slide_channel_partner_form_gradebook').id,
-            'target': 'main', # 'main' rompe el stack de breadcrumbs/modales mejor que 'current' en algunos casos
+            'target': 'current', # 'current' mantiene las migas de pan
             'context': {'create': False, 'edit': True},
         }
 

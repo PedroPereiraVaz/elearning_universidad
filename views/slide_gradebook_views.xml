@@ -62,6 +62,7 @@
     <record id="view_slide_channel_partner_form_gradebook" model="ir.ui.view">
         <field name="name">slide.channel.partner.form.gradebook</field>
         <field name="model">slide.channel.partner</field>
+        <field name="priority">1</field>
         <field name="arch" type="xml">
             <form string="Acta Académica" create="0">
                 <header>
@@ -119,7 +120,9 @@
                             <field name="tipo_curso_rel" invisible="1"/>
                             <field name="asignatura_partner_ids" invisible="not tipo_curso_rel == 'master'">
                                 <!-- ACTION: Click en fila abre Popup. Botón Evaluar abre pantalla completa. -->
-                                <list string="Asignaturas" create="0" delete="0" edit="1" action="action_open_gradebook_form" type="object">
+                                <list string="Asignaturas" create="0" delete="0" edit="1" 
+                                      action="action_open_gradebook_form" type="object"
+                                      context="{'form_view_ref': 'elearning_universidad.view_slide_channel_partner_form_gradebook'}">
                                     <field name="channel_id" string="Asignatura" readonly="1" options="{'no_open': True}"/>
                                     <field name="nota_final" widget="float" string="Nota (0-10)"/>
                                     <field name="estado_nota" widget="badge" decoration-success="estado_nota == 'evaluado'"/>
@@ -131,7 +134,7 @@
                             <!-- Ocultar completamente si es Master -->
                             <field name="evaluaciones_ids" invisible="tipo_curso_rel == 'master'">
                                 <list editable="bottom" create="0" delete="0" decoration-warning="estado_evaluacion == 'pendiente_revision'">
-                                    <field name="slide_id" readonly="1" string="Contenido"/>
+                                    <field name="slide_id" readonly="1" string="Contenido" options="{'no_open': True}"/>
                                     
                                     <!-- Propiedad Evaluable: Icono o texto -->
                                     <field name="slide_category" column_invisible="True"/>

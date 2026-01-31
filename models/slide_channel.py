@@ -941,12 +941,16 @@ class CanalSlide(models.Model):
         # Calculamos el ID de agrupación (Master) según el tipo de curso actual
         target_master_id = self.id if self.tipo_curso == 'master' else (self.master_id.id if self.master_id else False)
         
+        tree_view_id = self.env.ref('elearning_universidad.view_slide_channel_partner_tree_gradebook').id
+        form_view_id = self.env.ref('elearning_universidad.view_slide_channel_partner_form_gradebook').id
+        
         return {
             'name': _('Alumnos de %s') % self.name,
             'type': 'ir.actions.act_window',
             'res_model': 'slide.channel.partner',
-            'view_mode': 'list',
-            'view_id': self.env.ref('elearning_universidad.view_slide_channel_partner_tree_gradebook').id,
+            'view_mode': 'list,form',
+            'views': [(tree_view_id, 'list'), (form_view_id, 'form')],
+            'view_id': tree_view_id,
             # Filtro Fundamental: Solo alumnos de este curso
             'domain': [('channel_id', '=', self.id)],
             'context': {
