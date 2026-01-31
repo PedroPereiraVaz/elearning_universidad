@@ -45,9 +45,8 @@
         <field name="model">slide.channel.partner</field>
         <field name="arch" type="xml">
             <list string="Listado de Alumnos" create="0" delete="0" edit="0" action="action_open_gradebook_form" type="object">
-                <field name="partner_id" string="Alumno"/>
-                <field name="channel_id" string="Curso"/>
-                <!-- Eliminado gradebook_master_id visualmente -->
+                <field name="partner_id" string="Alumno" options="{'no_open': True}"/>
+                <field name="channel_id" string="Curso" options="{'no_open': True}"/>
                 <field name="gradebook_master_id" column_invisible="True"/> 
                 <field name="nota_final" widget="float" string="Nota Académica"/>
                 <field name="estado_nota" widget="badge" 
@@ -93,8 +92,8 @@
                     <field name="tiene_titulo_curso" invisible="1"/>
                     
                     <div class="oe_title">
-                        <h1><field name="partner_id" readonly="1"/></h1>
-                        <h3><field name="channel_id" readonly="1"/></h3>
+                        <h1><field name="partner_id" readonly="1" options="{'no_open': True}"/></h1>
+                        <h3><field name="channel_id" readonly="1" options="{'no_open': True}"/></h3>
                     </div>
                     <group>
                         <group string="Resumen">
@@ -121,7 +120,7 @@
                             <field name="asignatura_partner_ids" invisible="not tipo_curso_rel == 'master'">
                                 <!-- ACTION: Click en fila abre Popup. Botón Evaluar abre pantalla completa. -->
                                 <list string="Asignaturas" create="0" delete="0" edit="1" action="action_open_gradebook_form" type="object">
-                                    <field name="channel_id" string="Asignatura"/>
+                                    <field name="channel_id" string="Asignatura" readonly="1" options="{'no_open': True}"/>
                                     <field name="nota_final" widget="float" string="Nota (0-10)"/>
                                     <field name="estado_nota" widget="badge" decoration-success="estado_nota == 'evaluado'"/>
                                     <button name="action_open_gradebook_form" type="object" string="Evaluar" icon="fa-external-link" class="btn-primary"/>
@@ -180,8 +179,8 @@
                     </div>
                     <widget name="web_ribbon" title="Certificado" bg_color="bg-success"/>
                     <div class="oe_title">
-                        <h1><field name="partner_id" readonly="1"/></h1>
-                        <h3><field name="channel_id" readonly="1"/></h3>
+                        <h1><field name="partner_id" readonly="1" options="{'no_open': True}"/></h1>
+                        <h3><field name="channel_id" readonly="1" options="{'no_open': True}"/></h3>
                     </div>
                     <group>
                         <group string="Detalles de Emisión">
@@ -209,8 +208,8 @@
         <field name="model">slide.channel.partner</field>
         <field name="arch" type="xml">
             <list string="Títulos Emitidos" create="0" delete="0" edit="0" type="object">
-                <field name="partner_id" string="Alumno"/>
-                <field name="channel_id" string="Curso"/>
+                <field name="partner_id" string="Alumno" options="{'no_open': True}"/>
+                <field name="channel_id" string="Curso" options="{'no_open': True}"/>
                 <field name="fecha_emision_titulo"/>
                 <field name="nota_final" widget="float" optional="hide"/>
                 <field name="estado_nota" widget="badge" decoration-success="estado_nota == 'certificado'"/>
@@ -229,8 +228,8 @@
         <field name="model">slide.slide.partner</field>
         <field name="arch" type="xml">
             <list string="Pendientes de Evaluar" create="0" delete="0" editable="bottom" decoration-warning="estado_evaluacion == 'pendiente_revision'">
-                <field name="partner_id" string="Alumno" readonly="1"/>
-                <field name="channel_id" string="Curso/Contenido" readonly="1"/>
+                <field name="partner_id" string="Alumno" readonly="1" options="{'no_open': True}"/>
+                <field name="channel_id" string="Curso/Contenido" readonly="1" options="{'no_open': True}"/>
                 <field name="slide_id" readonly="1"/>
                 <field name="fecha_entrega" readonly="1"/>
                 <field name="nombre_archivo" column_invisible="True"/>
