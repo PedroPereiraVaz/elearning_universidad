@@ -52,9 +52,8 @@
                                 <!-- Icono Toggle -->
                                 <i class="fa fa-chevron-right text-muted transition-transform" style="font-size: 0.8rem;"/>
                                 
-                                <div class="bg-primary bg-opacity-10 p-3 rounded-circle text-primary">
-                                    <i class="fa fa-graduation-cap fa-lg" t-if="enrollment.channel_id.tipo_curso == 'master'"/>
-                                    <i class="fa fa-book fa-lg" t-else=""/>
+                                <div class="bg-primary p-3 rounded-circle shadow-sm text-white d-flex justify-content-center align-items-center">
+                                    <i class="fa fa-university fa-2x"/>
                                 </div>
                                 <div>
                                     <h5 class="mb-0 fw-bold text-dark" t-field="enrollment.channel_id.name"/>
@@ -77,16 +76,16 @@
                         <!-- Cuerpo Colapsable -->
                         <div t-att-id="'course_collapse_' + str(enrollment.id)" class="collapse">
                             <div class="card-body p-0 border-top">
-                                <!-- CERTIFICATE CARD (Premium Box) -->
+                                <!-- Titulo CARD (Premium Box) -->
                                 <t t-if="enrollment.titulo_emitido">
                                     <div class="p-4 bg-warning bg-opacity-10 border-bottom d-flex align-items-center justify-content-between">
                                         <div class="d-flex align-items-center gap-3">
                                             <div class="bg-white p-3 rounded-circle shadow-sm text-warning d-flex justify-content-center align-items-center"
                                                  style="width: 60px; height: 60px;">
-                                                <i class="fa fa-certificate fa-2x"/>
+                                                <i class="fa fa-graduation-cap fa-2x"/>
                                             </div>
                                             <div>
-                                                <h5 class="mb-1 fw-bold text-dark">Título: <span t-field="enrollment.channel_id.name"/></h5>
+                                                <h5 class="mb-1 fw-bold text-dark">Certificación: <span t-field="enrollment.channel_id.name"/></h5>
                                                 <div class="text-muted small">
                                                     <i class="fa fa-calendar me-1"/> Emitido el <span t-field="enrollment.fecha_emision_titulo" t-options='{"widget": "date"}'/>
                                                 </div>
@@ -98,8 +97,8 @@
                                                 <i class="fa fa-eye me-2 text-primary"/> Vista Previa
                                             </a>
                                             <a t-attf-href="/my/grades/certificate/#{enrollment.id}?download=true" 
-                                               class="btn btn-warning text-dark fw-bold px-3 shadow-sm">
-                                                <i class="fa fa-download me-2"/> Descargar PDF
+                                               class="btn btn-light border shadow-sm text-dark fw-bold px-3">
+                                                <i class="fa fa-download me-2 text-primary"/> Descargar PDF
                                             </a>
                                         </div>
                                     </div>
