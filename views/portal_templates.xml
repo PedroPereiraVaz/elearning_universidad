@@ -123,7 +123,7 @@
                                                         </div>
                                                     </button>
                                                 </h2>
-                                                <div t-att-id="'collapse_' + str(asig.id)" class="accordion-collapse collapse" t-att-data-bs-parent="'#accordion_' + str(enrollment.id)">
+                                                <div t-att-id="'collapse_' + str(asig.id)" class="accordion-collapse collapse">
                                                     <div class="accordion-body bg-light bg-opacity-25">
                                                         <!-- Tabla de Contenidos -->
                                                         <t t-call="elearning_universidad.portal_grades_content_table">
